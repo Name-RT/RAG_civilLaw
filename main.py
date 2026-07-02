@@ -103,6 +103,40 @@ def has_simplified_explanation(original: str, simplified: str) -> bool:
         return False
     return True
 
+# ข้อมูลสาธิตกรณีไม่มีฐานข้อมูลจริงในเครื่อง (ใช้เพื่อเริ่มระบบได้ทันทีเมื่อโคลนโปรเจกต์)
+DEMO_LAWS = [
+    {
+        "section": "มาตรา ๑๕",
+        "category": "บุคคลและความสามารถทางกฎหมาย",
+        "original_text": "สภาพบุคคลย่อมเริ่มแต่เมื่อคลอดแล้วอยู่รอดเป็นทารก และสิ้นสุดลงเมื่อตาย",
+        "simplified_text": "สภาพความเป็นบุคคลเริ่มต้นตั้งแต่เวลาที่เราเกิดมาและรอดชีวิต และจะสิ้นสุดลงเมื่อเราเสียชีวิต"
+    },
+    {
+        "section": "มาตรา ๒๑",
+        "category": "บุคคลและความสามารถทางกฎหมาย",
+        "original_text": "ผู้เยาว์จะทำนิติกรรมใดๆ ต้องได้รับความยินยอมของผู้แทนโดยชอบธรรมก่อน การใดๆ ที่ผู้เยาว์ได้ทำลงปราศจากความยินยอมเช่นว่านั้นท่านว่าเป็นโมฆียะ เว้นแต่จะบัญญัติไว้เป็นอย่างอื่น",
+        "simplified_text": "เด็กที่ยังไม่บรรลุนิติภาวะ (ผู้เยาว์) หากจะเซ็นสัญญาหรือทำข้อตกลงใดๆ จะต้องได้รับความยินยอมจากพ่อแม่หรือผู้ปกครองก่อน มิฉะนั้นสัญญาดังกล่าวอาจถูกยกเลิก (เป็นโมฆียะ) ในภายหลังได้"
+    },
+    {
+        "section": "มาตรา ๖๕๓",
+        "category": "กู้ยืมและค้ำประกัน",
+        "original_text": "การกู้ยืมเงินกว่าสองพันบาทขึ้นไปนั้น หากมิได้มีหลักฐานเป็นหนังสืออย่างใดอย่างหนึ่งลงลายมือชื่อผู้ยืมเป็นสำคัญ จะฟ้องร้องบังคับคดีหาได้ไม่",
+        "simplified_text": "หากกู้ยืมเงินกันเกินกว่า 2,000 บาทขึ้นไป จะต้องมีหลักฐานการกู้เงินเป็นหนังสือหรือลายลักษณ์อักษรที่ลงลายมือชื่อผู้ยืม จึงจะสามารถใช้ฟ้องร้องดำเนินคดีตามกฎหมายได้"
+    },
+    {
+        "section": "มาตรา ๑๓๐๔",
+        "category": "ทรัพย์และทรัพย์สิน",
+        "original_text": "สาธารณสมบัติของแผ่นดินนั้น รวมทรัพย์สินทุกชนิดของแผ่นดินซึ่งมีไว้เพื่อสาธารณประโยชน์หรือสงวนไว้เพื่อประโยชน์ร่วมกัน",
+        "simplified_text": "ทรัพย์สินส่วนรวมของแผ่นดินที่มีไว้เพื่อประโยชน์ของส่วนรวมหรือทุกคนในประเทศร่วมกัน"
+    },
+    {
+        "section": "มาตรา ๔๒๐",
+        "category": "ละเมิด",
+        "original_text": "ผู้ใดจงใจหรือประมาทเลินเล่อ ทำต่อบุคคลอื่นโดยผิดกฎหมายให้เขาเสียหายถึงแก่ชีวิตก็ดี แก่ร่างกายก็ดี อนามัยก็ดี เสรีภาพก็ดี ทรัพย์สินหรือสิทธิอย่างหนึ่งอย่างใดก็ดี ท่านว่าผู้นั้นทำละเมิดจำต้องชดใช้ค่าสินไหมทดแทนเพื่อการนั้น",
+        "simplified_text": "ใครก็ตามที่ตั้งใจหรือประมาทเลินเล่อแล้วทำให้ผู้อื่นได้รับความเสียหายต่อชีวิต ร่างกาย สุขภาพ เสรีภาพ ทรัพย์สิน หรือสิทธิ์ต่าง ๆ ถือเป็นการทำละเมิด และต้องจ่ายค่าชดเชยค่าเสียหายให้กับผู้เสียหาย"
+    }
+]
+
 # ตั้งค่าโมเดลเวกเตอร์ Embedding และเชื่อมต่อ Qdrant ตั้งแต่สตาร์ทแอป
 embed_model = HuggingFaceEmbedding(model_name="intfloat/multilingual-e5-small")
 Settings.embed_model = embed_model
@@ -111,7 +145,59 @@ Settings.llm = None  # เน้นระบบสืบค้นตรงตั
 try:
     client = QdrantClient(url="http://localhost:6333")
     vector_store = QdrantVectorStore(client=client, collection_name="thai_laws")
-    index = VectorStoreIndex.from_vector_store(vector_store=vector_store)
+    
+    # ตรวจสอบสถานะชุดข้อมูลภายใน Qdrant
+    collections = client.get_collections().collections
+    exists = any(c.name == "thai_laws" for c in collections)
+    is_empty = True
+    if exists:
+        try:
+            count = client.count(collection_name="thai_laws").count
+            if count > 0:
+                is_empty = False
+        except Exception:
+            pass
+            
+    if is_empty:
+        print("💾 ไม่พบข้อมูลกฎหมายในระบบ ทำการสร้างชุดข้อมูลตัวอย่างเริ่มต้น (Demo Laws Ingestion)...")
+        os.makedirs("data", exist_ok=True)
+        json_path = "data/processed_laws.json"
+        if not os.path.exists(json_path):
+            with open(json_path, "w", encoding="utf-8") as f:
+                json.dump(DEMO_LAWS, f, ensure_ascii=False, indent=4)
+                
+        # เตรียมเอกสารนำเข้า
+        from llama_index.core import Document
+        documents = []
+        for law in DEMO_LAWS:
+            content = f"ตัวบทกฎหมาย: {law['original_text']}"
+            doc = Document(
+                text=content,
+                metadata={
+                    "section": law["section"],
+                    "category": law["category"],
+                    "simplified_text": law["simplified_text"]
+                }
+            )
+            documents.append(doc)
+            
+        # สร้าง Collection ใหม่
+        if exists:
+            client.delete_collection(collection_name="thai_laws")
+            
+        from qdrant_client.models import Distance, VectorParams
+        client.create_collection(
+            collection_name="thai_laws",
+            vectors_config=VectorParams(size=384, distance=Distance.COSINE)
+        )
+        
+        from llama_index.core import StorageContext
+        storage_context = StorageContext.from_defaults(vector_store=vector_store)
+        index = VectorStoreIndex.from_documents(documents, storage_context=storage_context)
+        print("[OK] Ingested demo laws into Qdrant successfully.")
+    else:
+        index = VectorStoreIndex.from_vector_store(vector_store=vector_store)
+        
     # fallback retriever (ไม่มี filter) ใช้เมื่อจำแนกหมวดหมู่ไม่ได้
     retriever = VectorIndexRetriever(index=index, similarity_top_k=5)
     print("[OK] Connected to Qdrant Vector DB successfully.")
