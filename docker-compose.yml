@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  # Qdrant Vector Database
+  # หน้าที่: เก็บข้อมูล Vector (Embeddings) ของเอกสารกฎหมาย
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: auditguard_qdrant
+    ports:
+      - "6333:6333" # REST API port สำหรับให้แอปของเราคุย
+      - "6334:6334" # gRPC port (สำหรับการเชื่อมต่อที่ต้องการความเร็วสูง)
+    volumes:
+      - ./qdrant_data:/qdrant/storage # ผูกโฟลเดอร์เครื่องเรากับใน Container เพื่อให้ข้อมูลไม่หายเมื่อปิด Docker
+    restart: unless-stopped
+
+  # MLflow Tracking Server
+  # หน้าที่: บันทึกผลการทดลอง RAG (เช่น ขนาด Chunk, Prompt, ค่าความแม่นยำ)
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.10.2
+    container_name: auditguard_mlflow
+    ports:
+      - "5000:5000" # พอร์ตสำหรับเปิดดู MLflow UI บนเบราว์เซอร์
+    # สั่งรัน MLflow Server พร้อมกำหนดให้ใช้ SQLite เป็นฐานข้อมูล และเก็บไฟล์ Artifacts ในโฟลเดอร์ที่กำหนด
+    command: >
+      mlflow server
+      --backend-store-uri sqlite:////mlflow_data/mlflow.db
+      --default-artifact-root /mlflow_data/artifacts
+      --host 0.0.0.0
+    volumes:
+      - ./mlflow_data:/mlflow_data # ผูกโฟลเดอร์เพื่อเก็บฐานข้อมูล SQLite และไฟล์ Artifacts (เช่น โมเดล, กราฟ)
+    restart: unless-stopped

@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบสืบค้นตัวบทกฎหมายแพ่งและพาณิชย์ — คลังข้อมูลประมวลกฎหมาย</title>
+    <meta name="description" content="ระบบสืบค้นประมวลกฎหมายแพ่งและพาณิชย์ด้วยเทคโนโลยีเวกเตอร์และการประมวลผลภาษาธรรมชาติ">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- ใช้ TH Sarabun หรือ Fonts ที่เป็นทางการและสะอาดตา -->
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Lora:ital,wght@0,500;0,600;1,400&display=swap" rel="stylesheet">
+
+    <style>
+        /* ===== DESIGN SYSTEM: CLASSIC LEGAL PORTAL (LIGHT/CREAM) ===== */
+        :root {
+            --bg-page:        #FBFBFA;   /* Warm off-white / parchment background */
+            --bg-card:        #FFFFFF;   /* Pure white for cards */
+            --primary:        #1B2E4A;   /* Deep Navy Blue (Authority) */
+            --primary-light:  #2C466D;
+            --accent-gold:    #9E7E44;   /* Classic Bronze/Gold for branding */
+            --accent-gold-dim: rgba(158, 126, 68, 0.08);
+            --border-color:   #E2DFD8;   /* Soft warm grey borders */
+            --border-focus:   #9E7E44;
+            --text-main:      #2A2B2D;   /* Off-black for high contrast readability */
+            --text-muted:     #6E7074;   /* Muted grey for metadata */
+            --bg-quote:       #FAF8F5;   /* Light cream for official law block */
+            --bg-explain:     #F3F6F5;   /* Very soft sage-cream for simplified explanation */
+            --border-explain: #D3DDD8;
+            --color-success:  #2D6A4F;
+            --color-danger:   #A8201A;
+            --shadow-subtle:  0 2px 8px rgba(27, 46, 74, 0.06);
+            --shadow-card:    0 4px 20px rgba(27, 46, 74, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background-color: var(--bg-page);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            line-height: 1.7;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ===== SYSTEM STATUS TOP BAR ===== */
+        .system-top-bar {
+            background-color: var(--primary);
+            color: #FFFFFF;
+            font-size: 0.78rem;
+            padding: 10px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--accent-gold);
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+
+        .system-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background-color: #E2C27A;
+            display: inline-block;
+        }
+
+        .status-dot.online {
+            background-color: #52B788;
+            box-shadow: 0 0 6px #52B788;
+        }
+
+        .status-dot.offline {
+            background-color: #E56B6F;
+            box-shadow: 0 0 6px #E56B6F;
+        }
+
+        /* ===== CONTAINER & GRID ===== */
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* ===== PORTAL HEADER ===== */
+        .portal-header {
+            text-align: center;
+            padding: 50px 0 35px;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        .portal-header-title {
+            font-family: 'Lora', serif;
+            font-size: 2.1rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin: 0 0 10px;
+            letter-spacing: -0.5px;
+        }
+
+        .portal-header-subtitle {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            margin: 0;
+            font-weight: 400;
+            letter-spacing: 0.2px;
+        }
+
+        .portal-header-divider {
+            width: 60px;
+            height: 2px;
+            background-color: var(--accent-gold);
+            margin: 20px auto 0;
+        }
+
+        /* ===== DEMO MODE WARNING ===== */
+        .demo-banner {
+            background-color: #FFF3CD;
+            border: 1px solid #FFEBA8;
+            color: #856404;
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 0.88rem;
+            margin-bottom: 30px;
+            display: none;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow-subtle);
+        }
+
+        .demo-banner button {
+            background-color: #856404;
+            color: #FFFFFF;
+            border: none;
+            padding: 4px 12px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            cursor: pointer;
+            font-family: inherit;
+            transition: background-color 0.15s;
+        }
+
+        .demo-banner button:hover {
+            background-color: #6C5003;
+        }
+
+        /* ===== SEARCH INTERFACE (CLEAN & EDITORIAL) ===== */
+        .search-section {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 30px;
+            box-shadow: var(--shadow-card);
+            margin-bottom: 40px;
+        }
+
+        .search-label {
+            font-family: 'Lora', serif;
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 12px;
+            display: block;
+        }
+
+        .search-bar {
+            display: flex;
+            gap: 12px;
+        }
+
+        .search-input {
+            flex-grow: 1;
+            border: 1px solid var(--border-color);
+            padding: 12px 18px;
+            font-size: 0.95rem;
+            font-family: 'Sarabun', sans-serif;
+            color: var(--text-main);
+            border-radius: 3px;
+            transition: border-color 0.15s, box-shadow 0.15s;
+            background-color: #FCFBF9;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 3px rgba(158, 126, 68, 0.1);
+            background-color: #FFFFFF;
+        }
+
+        .btn-submit {
+            background-color: var(--primary);
+            color: #FFFFFF;
+            border: none;
+            padding: 0 32px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 3px;
+            transition: background-color 0.15s;
+            font-family: inherit;
+        }
+
+        .btn-submit:hover {
+            background-color: var(--primary-light);
+        }
+
+        /* Quick Suggestions Links */
+        .presets-row {
+            margin-top: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            font-size: 0.82rem;
+            align-items: center;
+        }
+
+        .presets-title {
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .preset-link {
+            color: var(--primary-light);
+            text-decoration: none;
+            border-bottom: 1px solid rgba(44, 70, 109, 0.2);
+            cursor: pointer;
+            transition: color 0.15s, border-color 0.15s;
+        }
+
+        .preset-link:hover {
+            color: var(--accent-gold);
+            border-bottom-color: var(--accent-gold);
+        }
+
+        /* ===== SEARCH STATS BANNER ===== */
+        .search-meta-banner {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+            margin-bottom: 25px;
+            font-size: 0.82rem;
+            color: var(--text-muted);
+        }
+
+        .search-meta-banner strong {
+            color: var(--primary);
+        }
+
+        /* ===== RESULTS LAYOUT (Westlaw/LexisNexis Editorial Style) ===== */
+        .results-list {
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+        }
+
+        .result-item {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 3px;
+            box-shadow: var(--shadow-card);
+            padding: 30px;
+            position: relative;
+        }
+
+        /* AI Legal Analysis Card */
+        .ai-analysis-card {
+            background: linear-gradient(135deg, #FCFBF9 0%, #F5F2EA 100%);
+            border: 1px solid var(--border-color);
+            border-top: 4px solid var(--accent-gold);
+            border-radius: 4px;
+            padding: 30px;
+            box-shadow: var(--shadow-card);
+            margin-bottom: 35px;
+            position: relative;
+        }
+
+        .ai-analysis-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .ai-badge {
+            font-family: 'Lora', serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .ai-logo-tag {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--accent-gold);
+            background-color: var(--accent-gold-dim);
+            padding: 4px 10px;
+            border-radius: 2px;
+            border: 1px solid rgba(158, 126, 68, 0.15);
+        }
+
+        .ai-analysis-section {
+            margin-bottom: 20px;
+            padding-bottom: 18px;
+            border-bottom: 1px dashed rgba(158, 126, 68, 0.15);
+        }
+
+        .ai-section-title {
+            font-family: 'Lora', serif;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--primary-light);
+            margin: 0 0 10px 0;
+            letter-spacing: 0.2px;
+        }
+
+        .ai-section-text {
+            font-size: 0.94rem;
+            line-height: 1.8;
+            color: var(--text-main);
+            margin: 0;
+        }
+
+        .ai-section-text.highlight-rec {
+            font-size: 0.96rem;
+            line-height: 1.85;
+            color: #1A1A1A;
+            background-color: #FFFFFF;
+            padding: 18px 22px;
+            border-radius: 3px;
+            border: 1px solid var(--border-color);
+            border-left: 3px solid var(--accent-gold);
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 18px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #F0EDE6;
+        }
+
+        .result-title {
+            font-family: 'Lora', serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin: 0;
+        }
+
+        .category-badge {
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: var(--accent-gold);
+            background-color: var(--accent-gold-dim);
+            border: 1px solid rgba(158, 126, 68, 0.2);
+            padding: 3px 10px;
+            border-radius: 2px;
+            letter-spacing: 0.5px;
+        }
+
+        /* Document Paper Blocks */
+        .legal-document {
+            background-color: var(--bg-quote);
+            border: 1px solid var(--border-color);
+            border-left: 3px solid var(--accent-gold);
+            padding: 20px 24px;
+            border-radius: 2px;
+            margin-bottom: 18px;
+        }
+
+        .document-label {
+            font-size: 0.68rem;
+            font-weight: 700;
+            color: var(--accent-gold);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .document-text {
+            font-size: 0.95rem;
+            line-height: 1.85;
+            color: var(--text-main);
+            margin: 0;
+        }
+
+        /* Practice Explanation Block */
+        .practice-explanation {
+            background-color: var(--bg-explain);
+            border: 1px solid var(--border-explain);
+            border-left: 3px solid var(--color-success);
+            padding: 20px 24px;
+            border-radius: 2px;
+        }
+
+        .practice-label {
+            font-size: 0.68rem;
+            font-weight: 700;
+            color: var(--color-success);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .practice-text {
+            font-size: 0.92rem;
+            line-height: 1.8;
+            color: #2c3e35;
+            margin: 0;
+        }
+
+        /* ===== GLOSSARY & REFERENCE STYLE ===== */
+        .term-highlight {
+            border-bottom: 1.5px dotted var(--accent-gold);
+            color: #8C6627;
+            cursor: pointer;
+            font-weight: 500;
+            padding: 0 1px;
+            transition: background-color 0.15s;
+        }
+
+        .term-highlight:hover {
+            background-color: var(--accent-gold-dim);
+        }
+
+        .reference-link {
+            border-bottom: 1.5px solid rgba(44, 70, 109, 0.4);
+            color: var(--primary-light);
+            cursor: pointer;
+            font-weight: 500;
+            padding: 0 1px;
+            transition: background-color 0.15s;
+        }
+
+        .reference-link:hover {
+            background-color: rgba(44, 70, 109, 0.06);
+        }
+
+        /* ===== FLOATING DRAWER (MODERN POPUP) ===== */
+        .drawer-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(27, 46, 74, 0.4);
+            z-index: 1000;
+            display: none;
+            backdrop-filter: blur(2px);
+        }
+
+        .drawer {
+            position: fixed;
+            bottom: 0; right: 0; left: 0;
+            background-color: #FFFFFF;
+            border-top: 3px solid var(--accent-gold);
+            box-shadow: 0 -8px 24px rgba(0,0,0,0.15);
+            max-height: 400px;
+            z-index: 1001;
+            display: none;
+            animation: slideUp 0.2s ease-out;
+            padding: 24px;
+        }
+
+        @media (min-width: 600px) {
+            .drawer {
+                top: 0; bottom: 0; right: 0; left: auto;
+                width: 420px;
+                max-height: none;
+                border-top: none;
+                border-left: 3px solid var(--accent-gold);
+                animation: slideLeft 0.2s ease-out;
+            }
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+
+        @keyframes slideLeft {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+
+        .drawer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 12px;
+            margin-bottom: 16px;
+        }
+
+        .drawer-title {
+            font-family: 'Lora', serif;
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin: 0;
+        }
+
+        .drawer-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.3rem;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .drawer-close:hover {
+            color: var(--text-main);
+        }
+
+        .drawer-body {
+            font-size: 0.9rem;
+            line-height: 1.75;
+            color: var(--text-main);
+            overflow-y: auto;
+            max-height: calc(100% - 60px);
+        }
+
+        /* Secondary drawer style (For References) */
+        .drawer.reference-drawer {
+            border-color: var(--primary);
+        }
+
+        /* ===== SKELETON / LOADING ===== */
+        .skeleton-block {
+            background: linear-gradient(90deg, #F0EDE6 25%, #E8E5DD 50%, #F0EDE6 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 2px;
+            height: 16px;
+            margin-bottom: 8px;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* ===== EMPTY / INFO MESSAGES ===== */
+        .status-message {
+            text-align: center;
+            border: 1px dashed var(--border-color);
+            border-radius: 3px;
+            padding: 40px;
+            color: var(--text-muted);
+            background-color: #FFFFFF;
+        }
+
+        .status-message-icon {
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+            color: var(--accent-gold);
+        }
+
+        /* ===== FOOTER ===== */
+        .portal-footer {
+            border-top: 1px solid var(--border-color);
+            margin-top: 60px;
+            padding: 30px 0;
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+
+<!-- System status banner -->
+<div class="system-top-bar">
+    <div>คลังกฎหมายแพ่งและพาณิชย์ดิจิทัล</div>
+    <div class="system-status">
+        <span class="status-dot" id="status-dot"></span>
+        <span id="status-text">กำลังตรวจสอบสถานะการเชื่อมต่อ...</span>
+    </div>
+</div>
+
+<!-- Main body container -->
+<div class="container">
+
+    <!-- Header section -->
+    <header class="portal-header">
+        <h1 class="portal-header-title">ประมวลกฎหมายแพ่งและพาณิชย์</h1>
+        <p class="portal-header-subtitle">ระบบบริการค้นข้อมูลและวิเคราะห์ตัวบทด้วยดัชนีเซนเซอร์เวกเตอร์อัจฉริยะ</p>
+        <div class="portal-header-divider"></div>
+    </header>
+
+    <!-- Demo Banner -->
+    <div class="demo-banner" id="demo-banner">
+        <span>⚠️ ระบบหลักบ้านทำงานแบบออฟไลน์ กำลังให้บริการด้วย <strong>ระบบสืบค้นตัวอย่างในเครื่อง</strong></span>
+        <button onclick="toggleDemoMode()">ปิดโหมดสาธิต</button>
+    </div>
+
+    <!-- Search Section -->
+    <section class="search-section">
+        <label for="search-box" class="search-label">สืบค้นข้อกำหนดและปัญหาข้อกฎหมาย</label>
+        <form id="search-form" onsubmit="handleSearch(event)">
+            <div class="search-bar">
+                <input type="text" class="search-input" id="search-box"
+                       placeholder="พิมพ์สถานการณ์จริง เช่น เพื่อนยืมเงิน 3000 บาทแล้วไม่ยอมคืน, สภาพบุคคลเริ่มต้นที่ตรงไหน..."
+                       autocomplete="off" required>
+                <button type="submit" class="btn-submit" id="btn-submit">ค้นข้อมูล</button>
+            </div>
+        </form>
+
+        <div class="presets-row">
+            <span class="presets-title">คำสำคัญยอดนิยม:</span>
+            <a class="preset-link" onclick="usePreset('การกู้ยืมเงินเกินกว่า 2,000 บาทต้องทำสัญญายังไง')">การกู้ยืมเงิน</a>
+            <a class="preset-link" onclick="usePreset('สภาพความเป็นบุคคลตามกฎหมายเริ่มตอนไหน')">สภาพบุคคล</a>
+            <a class="preset-link" onclick="usePreset('ความหมายของคำว่าเหตุสุดวิสัยทางกฎหมาย')">เหตุสุดวิสัย</a>
+            <a class="preset-link" onclick="usePreset('สามีแอบขายบ้านโดยภรรยาไม่ยินยอม')">จัดการสินสมรส</a>
+            <a class="preset-link" onclick="usePreset('รับมรดกแทนที่บิดาที่เสียชีวิตก่อนเจ้ามรดก')">สิทธิรับมรดกแทนที่</a>
+        </div>
+    </section>
+
+    <!-- Meta / Stats -->
+    <div id="search-meta" style="display: none;">
+        <div class="search-meta-banner">
+            <div>ผลการสืบค้นข้อมูลในสารบบ: <strong id="meta-category">ไม่ระบุ</strong></div>
+            <div id="meta-count">พบ 0 มาตรา</div>
+        </div>
+    </div>
+
+    <!-- Results Panel -->
+    <div class="results-list" id="results-panel">
+        <div class="status-message">
+            <div class="status-message-icon">📜</div>
+            <div>กรุณากรอกข้อสงสัยทางกฎหมายหรือหัวข้อที่ต้องการศึกษาเพื่อเริ่มต้นการสืบค้น</div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="portal-footer">
+        ระบบพัฒนาเพื่อการศึกษาและวิเคราะห์สถิติตัวบทกฎหมายโดย AI RAG &copy; 2026. ข้อมูลอ้างอิงจากประมวลกฎหมายแพ่งและพาณิชย์ไทย.
+    </footer>
+</div>
+
+<!-- Overlay Background for Drawers -->
+<div class="drawer-overlay" id="drawer-overlay" onclick="closeAllDrawers()"></div>
+
+<!-- Floating Drawer (Glossary) -->
+<div class="drawer" id="glossary-drawer">
+    <div class="drawer-header">
+        <h5 class="drawer-title" id="glossary-title">คำศัพท์เฉพาะทาง</h5>
+        <button class="drawer-close" onclick="closeDrawer('glossary-drawer')">&times;</button>
+    </div>
+    <div class="drawer-body" id="glossary-body"></div>
+</div>
+
+<!-- Floating Drawer (Reference) -->
+<div class="drawer reference-drawer" id="reference-drawer">
+    <div class="drawer-header">
+        <h5 class="drawer-title" id="reference-title">มาตราอ้างอิงร่วม</h5>
+        <button class="drawer-close" onclick="closeDrawer('reference-drawer')">&times;</button>
+    </div>
+    <div class="drawer-body" id="reference-body"></div>
+</div>
+
+<script>
+    const API_URL = "http://127.0.0.1:8000";
+    let isDemoMode = false;
+    let backendOnline = false;
+
+    // ===== LEGAL GLOSSARY =====
+    const LEGAL_GLOSSARY = {
+        "โมฆะ": "นิติกรรมหรือสัญญาที่ไม่มีผลบังคับใช้ตามกฎหมายมาตั้งแต่เริ่มต้น เสมือนหนึ่งว่าไม่เคยมีการกระทำนั้นเกิดขึ้นเลยในสารบบกฎหมาย",
+        "โมฆียะ": "นิติกรรมหรือสัญญาที่มีผลสมบูรณ์ตามกฎหมายทุกประการอยู่จนกว่าจะถูกบอกล้างโดยผู้มีสิทธิ์ ซึ่งหากมีการบอกล้างจะทำให้สัญญาเป็นโมฆะย้อนหลังไปตั้งแต่แรก หรือหากมีการให้สัตยาบันจะทำให้สัญญานั้นสมบูรณ์อย่างเด็ดขาด",
+        "ละเมิด": "การกระทำโดยจงใจหรือประมาทเลินเล่อ ทำต่อบุคคลอื่นโดยผิดกฎหมาย เป็นเหตุให้เขาได้รับความเสียหายต่อชีวิต ร่างกาย อนามัย เสรีภาพ ทรัพย์สิน หรือสิทธิ์อย่างหนึ่งอย่างใด",
+        "นิติกรรม": "การกระทำของบุคคลโดยชอบด้วยกฎหมายและด้วยใจสมัคร มุ่งหมายโดยตรงเพื่อจะผูกนิติสัมพันธ์ขึ้นระหว่างบุคคล เพื่อจะก่อ เปลี่ยนแปลง โอน สงวน หรือระงับซึ่งสิทธิ์",
+        "บรรลุนิติภาวะ": "สภาวะที่บุคคลพ้นจากภาวะผู้เยาว์และมีความสามารถในการทำนิติกรรมสัญญาด้วยตนเองได้อย่างสมบูรณ์ โดยปกติเกิดขึ้นเมื่อมีอายุครบ 20 ปีบริบูรณ์ หรือเมื่อจดทะเบียนสมรสอย่างถูกต้องตามกฎหมาย",
+        "ผู้เยาว์": "บุคคลที่ยังไม่บรรลุนิติภาวะทางกฎหมาย (ยังอายุไม่ครบ 20 ปีบริบูรณ์และยังไม่ได้จดทะเบียนสมรส) ซึ่งการทำนิติกรรมโดยทั่วไปต้องได้รับความยินยอมจากผู้แทนโดยชอบธรรมก่อน",
+        "ผู้แทนโดยชอบธรรม": "บุคคลที่มีอำนาจจัดการหรือให้ความยินยอมแก่ผู้เยาว์ในการทำนิติกรรมสัญญาตามกฎหมาย โดยปกติคือบิดามารดาร่วมกัน หรือผู้ปกครองที่ได้รับการแต่งตั้งจากศาล",
+        "เหตุสุดวิสัย": "ภัยหรือเหตุการณ์ใดๆ อันจะเกิดขึ้นก็ดี จะให้ผลพิบัติก็ดี ซึ่งไม่มีบุคคลใดสามารถป้องกันหรือขัดขวางได้ แม้จะได้ใช้ความระมัดระวังในฐานะและภาวะเช่นนั้นแล้วก็ตาม",
+        "ฟ้องร้อง": "กระบวนการยื่นเสนอคำฟ้องคดีต่อศาลยุติธรรม เพื่อพิจารณาข้อพิพาทและมีคำพิพากษาบังคับใช้สิทธิ์ให้เป็นไปตามกฎหมาย",
+        "บังคับคดี": "กระบวนการทางกฎหมายในการบังคับตามคำพิพากษาของศาล เพื่อจัดระเบียบหนี้สินหรือทรัพย์สินของลูกหนี้ให้เป็นไปตามคำสั่งศาล",
+        "ค่าสินไหมทดแทน": "การชดใช้ค่าเสียหายอันพึงประเมินได้ เพื่อเยียวยาผู้เสียหายจากกรณีการทำละเมิดหรือการผิดสัญญา ซึ่งอาจเป็นตัวเงิน การคืนทรัพย์สิน หรือการปฏิบัติตามสมควร",
+        "พินัยกรรม": "เอกสารการแสดงเจตนากำหนดการเผื่อตายในเรื่องทรัพย์สินหรือการงานต่างๆ ของบุคคล เพื่อให้มีผลบังคับใช้เมื่อบุคคลนั้นถึงแก่ความตาย",
+        "ผู้อนุบาล": "บุคคลที่ได้รับการแต่งตั้งจากศาลให้ทำหน้าที่ดูแล ทำการแทน และคุ้มครองสิทธิของคนไร้ความสามารถในทุกเรื่อง",
+        "ผู้พิทักษ์": "บุคคลที่ได้รับการแต่งตั้งจากศาลให้ทำหน้าที่ดูแลและให้ความยินยอมในการทำนิติกรรมสำคัญบางประการแก่คนเสมือนไร้ความสามารถ",
+        "คนไร้ความสามารถ": "บุคคลที่มีความผิดปกติทางจิตใจอย่างรุนแรงและสม่ำเสมอ จนไม่สามารถจัดทำการงานของตนเองได้ ซึ่งศาลได้มีคำสั่งให้เป็นคนไร้ความสามารถและจัดให้อยู่ในความดูแลของผู้อนุบาล",
+        "คนเสมือนไร้ความสามารถ": "บุคคลที่ไม่สามารถจัดทำการงานของตนเองได้ดีเท่าคนปกติ เนื่องจากร่างกายพิการ จิตไม่สมประกอบ ประพฤติสุรุ่ยสุร่ายเสเพลเป็นอาจิณ หรือติดสุรายาเมาจนคุมตนเองไม่ได้ ซึ่งศาลสั่งให้มีผู้พิทักษ์ดูแล",
+        "สุจริต": "ความซื่อสัตย์สุจริตและความบริสุทธิ์ใจในการปฏิบัติตนตามสัญญาหรือสิทธิ์ โดยไม่มีเจตนาเอาเปรียบ ซ่อนเร้น หรือบิดเบือนข้อเท็จจริงเพื่อประโยชน์ของตน",
+        "หลักฐานแห่งการกู้ยืมเป็นหนังสือ": "หลักฐานเป็นลายลักษณ์อักษรที่ลงลายมือชื่อของลูกหนี้ (ผู้กู้ยืม) ชัดเจน ซึ่งแสดงข้อตกลงว่ามีการกู้ยืมเงินจริงตามจำนวนที่ระบุ (รวมถึงข้อความแชทอิเล็กทรอนิกส์ที่มีการตกลงยืมและระบุตัวตน)",
+        "ลงลายมือชื่อ": "การเขียนชื่อนามสกุลด้วยลายมือของบุคคล หรือการพิมพ์ลายนิ้วมือ/แกงไดที่มีพยานรับรองลงนามอย่างน้อย 2 คนเพื่อความสมบูรณ์ของเอกสารสัญญา"
+    };
+
+    // ===== MOCK DATABASE FOR DEMO MODE =====
+    const MOCK_DB = [
+        {
+            "section": "มาตรา ๔",
+            "category": "หลักทั่วไป",
+            "original_text": "มาตรา ๔ กฎหมายนั้น ต้องใช้ในบรรดากรณีซึ่งต้องด้วยบทบัญญัติใด ๆ แห่งกฎหมายตามตัวอักษร หรือตามความมุ่งหมายของบทบัญญัตินั้น ๆ เมื่อไม่มีบทกฎหมายที่จะยกมาปรับคดีได้ ให้วินิจฉัยคดีนั้นตามจารีตประเพณีแห่งท้องถิ่น ถ้าไม่มีจารีตประเพณีเช่นว่านั้น ให้วินิจฉัยคดีอาศัยเทียบบทกฎหมายที่ใกล้เคียงอย่างยิ่ง และถ้าบทกฎหมายเช่นนั้นก็ไม่มีด้วย ให้วินิจฉัยตามหลักกฎหมายทั่วไป",
+            "simplified_text": "การตีความกฎหมายต้องยึดตามคำอักษรและเจตนารมณ์ดั้งเดิมของกฎหมาย หากเกิดกรณีไม่มีกฎหมายระบุไว้โดยตรง ให้ศาลใช้จารีตประเพณีท้องถิ่นมาตัดสินก่อน หากไม่มีจารีตประเพณีให้ใช้มาตราที่ใกล้เคียงที่สุดมาเทียบเคียง และหากหาคำเทียบไม่ได้เลย ให้วินิจฉัยโดยอิงหลักกฎหมายทั่วไป\n\n💡 ตัวอย่างการใช้: หากมีสัญญาเกี่ยวกับทรัพย์สินระบบใหม่ที่ไม่มีกฎหมายเขียนไว้ ศาลจะนำหลักการซื้อขายแลกเปลี่ยนทั่วไปมาปรับใช้ตัดสิน"
+        },
+        {
+            "section": "มาตรา ๕",
+            "category": "หลักทั่วไป",
+            "original_text": "มาตรา ๕ ในการใช้สิทธิแห่งตนก็ดี ในการชำระหนี้ก็ดี บุคคลทุกคนต้องกระทำโดยสุจริต",
+            "simplified_text": "ไม่ว่าจะเป็นการเรียกร้องสิทธิ์ที่ตนมี หรือการจ่ายหนี้คืนให้ผู้อื่น ทุกคนต้องทำด้วยความบริสุทธิ์ใจ ความซื่อสัตย์สุจริต ไม่ฉวยโอกาสหรือใช้เหลี่ยมบิดเบือนกฎหมาย\n\n💡 ตัวอย่างการใช้: เจ้าหนี้ที่จงใจซ่อนตัวเพื่อปล่อยให้อายุความขาดและเรียกดอกเบี้ยปรับแพงๆ ถือเป็นการใช้สิทธิ์โดยไม่สุจริต"
+        },
+        {
+            "section": "มาตรา ๘",
+            "category": "หลักทั่วไป",
+            "original_text": "มาตรา ๘ คำว่า \"เหตุสุดวิสัย\" หมายความว่า เหตุใด ๆ อันจะเกิดขึ้นก็ดี จะให้ผลพิบัติก็ดี เป็นเหตุที่ไม่อาจป้องกันได้แม้ทั้งบุคคลผู้ต้องประสบหรือใกล้จะต้องประสบเหตุนั้น จะได้จัดการระมัดระวังตามสมควรอันพึงคาดหมายได้จากบุคคลในฐานะและภาวะเช่นนั้น",
+            "simplified_text": "เหตุสุดวิสัย คือ เหตุการณ์ร้ายแรงหรือภัยพิบัติที่เกิดขึ้นโดยไม่มีใครหลีกเลี่ยงหรือป้องกันได้ แม้ผู้ประสบเหตุจะเตรียมตัวและระมัดระวังอย่างดีที่สุดแล้วก็ตาม\n\n💡 ตัวอย่างการใช้: สินค้าบนเรือบรรทุกถูกพายุพัดจมหายไปกลางทะเลในสภาวะพายุรุนแรงที่ไม่อาจหลีกเลี่ยงได้ ถือเป็นเหตุสุดวิสัยในการส่งมอบ"
+        },
+        {
+            "section": "มาตรา ๑๕",
+            "category": "หลักทั่วไป",
+            "original_text": "มาตรา ๑๕ สภาพบุคคลย่อมเริ่มแต่เมื่อคลอดแล้วอยู่รอดเป็นทารกและสิ้นสุดลงเมื่อตาย ทารกในครรภ์มารดาก็สามารถมีสิทธิต่าง ๆ ได้ หากว่าภายหลังคลอดแล้วอยู่รอดเป็นทารก",
+            "simplified_text": "สภาพความเป็นมนุษย์ตามกฎหมายเริ่มนับทันทีเมื่อทารกคลอดพ้นจากครรภ์มารดาและมีชีวิตรอด และสิ้นสุดเมื่อเสียชีวิต ทารกที่ยังไม่คลอดก็มีสิทธิ์ทางแพ่ง (เช่น สิทธิ์รับมรดก) ได้หากต่อมาคลอดและมีชีวิตรอด\n\n💡 ตัวอย่างการใช้: ทารกที่บิดาเสียชีวิตก่อนคลอด 2 เดือน มีสิทธิ์รับมรดกตกทอดได้เสมือนคลอดแล้ว หากเด็กคลอดออกมารอดชีวิต"
+        },
+        {
+            "section": "มาตรา ๒๑",
+            "category": "บุคคลและความสามารถทางกฎหมาย",
+            "original_text": "มาตรา ๒๑ ผู้เยาว์จะทำการใด ๆ ต้องได้รับความยินยอมของผู้แทนโดยชอบธรรมก่อน การใด ๆ ที่ผู้เยาว์ได้ทำลงปราศจากความยินยอมเช่นว่านั้นเป็นโมฆียะ เว้นแต่จะบัญญัติไว้เป็นอย่างอื่น",
+            "simplified_text": "ผู้เยาว์ (อายุต่ำกว่า 20 ปี) จะทำสัญญาหรือนิติกรรมใดๆ ต้องให้พ่อแม่หรือผู้ปกครองให้ความยินยอมล่วงหน้า สัญญาที่ทำลงโดยพลการจะตกเป็น 'โมฆียะ'\n\n💡 ตัวอย่างการใช้: เด็กอายุ 15 ปีไปทำสัญญาผ่อนซื้อมอเตอร์ไซค์ราคาสูงโดยพ่อแม่ไม่ยินยอม สัญญาดังกล่าวสามารถบอกล้างให้เป็นโมฆะย้อนหลังได้"
+        },
+        {
+            "section": "มาตรา ๖๕๓",
+            "category": "กู้ยืมและค้ำประกัน",
+            "original_text": "มาตรา ๖๕๓ การกู้ยืมเงินกว่าสองพันบาทขึ้นไปนั้น ถ้ามิได้มีหลักฐานแห่งการกู้ยืมเป็นหนังสืออย่างใดอย่างหนึ่งลงลายมือชื่อผู้ยืมเป็นสำคัญ จะฟ้องร้องให้บังคับคดีหาได้ไม่",
+            "simplified_text": "การกู้เงินตั้งแต่ 2,000 บาทขึ้นไป ต้องมีเอกสารหลักฐานการกู้เงินที่ลงชื่อคนกู้ชัดเจน จึงจะสามารถส่งฟ้องคดีบังคับให้ใช้เงินคืนได้\n\n💡 ตัวอย่างการใช้: ยืมเงินสดปากเปล่า 5,000 บาทโดยไม่มีการพิมพ์แชทข้อความ ไม่มีสัญญาใดๆ จะไม่สามารถนำคดีขึ้นฟ้องร้องต่อศาลเพื่อบังคับให้ชำระคืนได้"
+        }
+    ];
+
+    // ===== INIT PROCESS & TIMEOUT FETCH =====
+    window.addEventListener('DOMContentLoaded', () => { 
+        checkBackendHealthWithTimeout(); 
+    });
+
+    // ใช้ AbortController กำหนด timeout ป้องกันหน้าค้างหากเครือข่ายบล็อก
+    async function fetchWithTimeout(url, options = {}, timeout = 2000) {
+        const controller = new AbortController();
+        const id = setTimeout(() => controller.abort(), timeout);
+        try {
+            const response = await fetch(url, {
+                ...options,
+                signal: controller.signal
+            });
+            clearTimeout(id);
+            return response;
+        } catch (error) {
+            clearTimeout(id);
+            throw error;
+        }
+    }
+
+    async function checkBackendHealthWithTimeout() {
+        const dot = document.getElementById('status-dot');
+        const text = document.getElementById('status-text');
+        const banner = document.getElementById('demo-banner');
+
+        try {
+            // เช็คสถานะโดยกำหนด timeout 2.5 วินาที
+            const res = await fetchWithTimeout(`${API_URL}/health`, { method: 'GET' }, 2500);
+            const data = await res.json();
+            
+            if (data.status === "OK") {
+                dot.className = "status-dot online";
+                text.innerText = "ระบบสืบค้นหลัก (Vector DB) พร้อมทำงาน";
+                backendOnline = true;
+                banner.style.display = "none";
+                isDemoMode = false;
+            } else {
+                throw new Error("DB Connection Refused");
+            }
+        } catch (e) {
+            // สลับเข้าโหมด Demo ออฟไลน์ทันทีโดยไม่มีอาการหน้าค้างคอยนาน
+            dot.className = "status-dot offline";
+            text.innerText = "ระบบหลักปิดอยู่ (ใช้ฐานข้อมูลสาธิตในเครื่อง)";
+            backendOnline = false;
+            banner.style.display = "flex";
+            isDemoMode = true;
+        }
+    }
+
+    function toggleDemoMode() {
+        if (isDemoMode && !backendOnline) {
+            alert("ไม่สามารถเปิดระบบเชื่อมโยงหลักได้ เนื่องจาก API Server หลังบ้านยังไม่ได้เปิดรันใช้งาน");
+            return;
+        }
+        isDemoMode = !isDemoMode;
+        document.getElementById('demo-banner').style.display = isDemoMode ? "flex" : "none";
+    }
+
+    function usePreset(text) {
+        document.getElementById('search-box').value = text;
+        document.getElementById('search-form').dispatchEvent(new Event('submit'));
+    }
+
+    // ===== HANDLE SEARCH =====
+    async function handleSearch(e) {
+        e.preventDefault();
+        const query = document.getElementById('search-box').value.trim();
+        const resultsPanel = document.getElementById('results-panel');
+        const metaBanner = document.getElementById('search-meta');
+
+        if (!query) {
+            resultsPanel.innerHTML = `
+                <div class="status-message">
+                    <div class="status-message-icon">⚠️</div>
+                    <div>กรุณาป้อนข้อความคำสืบค้นในช่องค้นข้อมูลก่อนครับ</div>
+                </div>`;
+            return;
+        }
+
+        // แสดงโครงกระดูกเอกสารจำลอง (Skeleton Loading)
+        resultsPanel.innerHTML = `
+            <div class="result-item">
+                <div class="result-header">
+                    <div class="skeleton-block" style="width: 25%; height: 18px;"></div>
+                    <div class="skeleton-block" style="width: 15%; height: 15px;"></div>
+                </div>
+                <div class="legal-document" style="border:none; background:var(--bg-explain);">
+                    <div class="skeleton-block" style="width: 100%;"></div>
+                    <div class="skeleton-block" style="width: 96%;"></div>
+                    <div class="skeleton-block" style="width: 78%; margin-bottom: 0;"></div>
+                </div>
+                <div class="practice-explanation" style="border:none;">
+                    <div class="skeleton-block" style="width: 100%;"></div>
+                    <div class="skeleton-block" style="width: 48%; margin-bottom: 0;"></div>
+                </div>
+            </div>
+        `;
+
+        if (isDemoMode) {
+            // ค้นหาระดับสาธิต (Client-side Scan)
+            setTimeout(() => {
+                const filtered = MOCK_DB.filter(item => 
+                    item.original_text.includes(query) || 
+                    query.split(" ").some(word => item.original_text.includes(word))
+                );
+                const results = filtered.length > 0 ? filtered : MOCK_DB.slice(0, 2);
+                
+                metaBanner.style.display = 'block';
+                document.getElementById('meta-category').innerText = "หลักทั่วไป (โหมดสาธิต)";
+                document.getElementById('meta-count').innerText = `พบ ${results.length} มาตรา`;
+                
+                renderResults(results);
+            }, 600);
+        } else {
+            try {
+                // ส่งดึงข้อมูลจริงจาก FastAPI พร้อมจำกัดเวลา 5 วินาทีป้องกันค้าง
+                const res = await fetchWithTimeout(`${API_URL}/ask`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: query, top_k: 5 })
+                }, 5000);
+
+                if (!res.ok) throw new Error("Server Query Response Failed");
+                const data = await res.json();
+
+                metaBanner.style.display = 'block';
+                document.getElementById('meta-category').innerText = data.detected_category || "ทั่วไป (ค้นหาทั้งคลัง)";
+                document.getElementById('meta-count').innerText = `พบ ${data.found} มาตรา`;
+
+                renderResults(data.results, data.legal_analysis);
+            } catch (err) {
+                resultsPanel.innerHTML = `
+                    <div class="status-message" style="border-color: var(--color-danger);">
+                        <div class="status-message-icon" style="color:var(--color-danger);">⚠️</div>
+                        <div>การดึงข้อมูลล้มเหลว: ${err.message}</div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 5px;">
+                            ระบบอาจจะขาดการเชื่อมต่อ หรือเครือข่ายขัดข้อง กรุณาลองใช้อีกครั้ง
+                        </div>
+                    </div>`;
+            }
+        }
+    }
+
+    // ===== TEXT PROCESSORS =====
+    function thaiToArabic(text) {
+        const THAI_DIGITS = { '๐':'0','๑':'1','๒':'2','๓':'3','๔':'4','๕':'5','๖':'6','๗':'7','๘':'8','๙':'9' };
+        return text.replace(/[๐-๙]/g, ch => THAI_DIGITS[ch]);
+    }
+
+    function parseTextMarkup(text) {
+        if (!text) return "";
+        let markup = text;
+
+        // 1. ตรวจสอบจับเลขมาตราอ้างอิง
+        const refRegex = /(มาตรา\s*([๐-๙\d]+))/g;
+        const foundRefs = [];
+        let refIdx = 0;
+        markup = markup.replace(refRegex, (match, p1, p2) => {
+            const placeholder = `__REF_MARK_${refIdx}__`;
+            foundRefs.push({ placeholder, original: match, num: thaiToArabic(p2), displayNum: p2 });
+            refIdx++;
+            return placeholder;
+        });
+
+        // 2. จับคู่ศัพท์กฎหมายจากคลังพจนานุกรม
+        const sortedGlossary = Object.keys(LEGAL_GLOSSARY).sort((a,b) => b.length - a.length);
+        const foundGlossary = [];
+        sortedGlossary.forEach((term, idx) => {
+            if (markup.includes(term)) {
+                const placeholder = `__GLOS_MARK_${idx}__`;
+                foundGlossary.push({ placeholder, term });
+                markup = markup.replaceAll(term, placeholder);
+            }
+        });
+
+        // 3. แทนคืนค่าแท็ก Reference Link
+        foundRefs.forEach(item => {
+            markup = markup.replaceAll(item.placeholder, 
+                `<span class="reference-link" onclick="openReferenceDrawer('${item.num}', '${item.displayNum}')">มาตรา ${item.displayNum}</span>`
+            );
+        });
+
+        // 4. แทนคืนค่าแท็ก Glossary Highlight
+        foundGlossary.forEach(item => {
+            markup = markup.replaceAll(item.placeholder, 
+                `<span class="term-highlight" onclick="openGlossaryDrawer('${item.term}')">${item.term}</span>`
+            );
+        });
+
+        return markup;
+    }
+
+    // ===== DRAWERS MANAGERS (MODERN DESIGN) =====
+    function openGlossaryDrawer(term) {
+        if (!LEGAL_GLOSSARY[term]) return;
+        document.getElementById('glossary-title').innerText = `สารานุกรมกฎหมาย: ${term}`;
+        document.getElementById('glossary-body').innerHTML = `
+            <div style="font-size: 0.98rem; font-weight: 500; color: var(--primary); margin-bottom: 8px;">ความหมายตามคำอธิบาย:</div>
+            <p style="margin: 0; line-height: 1.8;">${LEGAL_GLOSSARY[term]}</p>
+        `;
+        showDrawer('glossary-drawer');
+    }
+
+    async function openReferenceDrawer(num, displayNum) {
+        const title = document.getElementById('reference-title');
+        const body = document.getElementById('reference-body');
+        
+        title.innerText = `มาตราสืบค้นร่วม: มาตรา ${displayNum}`;
+        body.innerHTML = `<div style="padding: 20px 0; text-align: center; color: var(--text-muted);">กำลังค้นข้อมูล...</div>`;
+        showDrawer('reference-drawer');
+
+        if (isDemoMode) {
+            const item = MOCK_DB.find(x => x.section.includes(displayNum) || x.section.includes(num));
+            if (item) {
+                renderReferenceContent(item);
+            } else {
+                body.innerHTML = `
+                    <div style="color:var(--color-danger); margin-bottom: 8px;">ไม่พบมาตรา ${displayNum} ในโหมดสาธิต</div>
+                    <div style="font-size: 0.82rem; color: var(--text-muted);">คุณสามารถเชื่อมต่อระบบหลังบ้านเต็มรูปแบบเพื่อตรวจสอบค้นหากฎหมายได้ครบทุกมาตรา</div>`;
+            }
+        } else {
+            try {
+                const res = await fetchWithTimeout(`${API_URL}/section/${num}`, { method: 'GET' }, 3000);
+                if (!res.ok) throw new Error("Data Not Found");
+                const data = await res.json();
+                renderReferenceContent(data);
+            } catch (err) {
+                body.innerHTML = `<div style="color:var(--color-danger);">ไม่สามารถเรียกดูมาตรา ${displayNum} ได้: ${err.message}</div>`;
+            }
+        }
+    }
+
+    function renderReferenceContent(item) {
+        const body = document.getElementById('reference-body');
+        let explainBlock = "";
+        if (item.simplified_text && item.simplified_text.trim() !== "") {
+            explainBlock = `
+                <div style="margin-top: 15px; padding: 14px; background: var(--bg-explain); border-left: 2px solid var(--color-success); font-size: 0.88rem; line-height: 1.7;">
+                    <strong>คำอธิบาย/ตัวอย่างการปฏิบัติตามกฎหมาย:</strong><br>
+                    ${parseTextMarkup(item.simplified_text)}
+                </div>
+            `;
+        }
+        body.innerHTML = `
+            <div style="font-size: 0.72rem; color: var(--accent-gold); font-weight: 700; margin-bottom: 6px;">หมวดหมู่: ${item.category}</div>
+            <p style="margin: 0; line-height: 1.75; font-size: 0.92rem;">${parseTextMarkup(item.original_text)}</p>
+            ${explainBlock}
+        `;
+    }
+
+    function showDrawer(id) {
+        document.getElementById('drawer-overlay').style.display = 'block';
+        document.getElementById(id).style.display = 'block';
+    }
+
+    function closeDrawer(id) {
+        document.getElementById(id).style.display = 'none';
+        // ตรวจดูว่าไม่มี drawer ไหนเปิดอยู่แล้วค่อยปิด overlay
+        const anyOpen = Array.from(document.querySelectorAll('.drawer')).some(x => x.style.display === 'block');
+        if (!anyOpen) {
+            document.getElementById('drawer-overlay').style.display = 'none';
+        }
+    }
+
+    function closeAllDrawers() {
+        document.querySelectorAll('.drawer').forEach(d => d.style.display = 'none');
+        document.getElementById('drawer-overlay').style.display = 'none';
+    }
+
+    // ===== RENDER RESULTS LIST =====
+    function renderResults(results, legalAnalysis = null) {
+        const resultsPanel = document.getElementById('results-panel');
+        resultsPanel.innerHTML = '';
+
+        // Render AI Legal Analysis if present
+        if (legalAnalysis && legalAnalysis.has_analysis) {
+            const aiCard = document.createElement('div');
+            aiCard.className = 'ai-analysis-card';
+            aiCard.innerHTML = `
+                <div class="ai-analysis-header">
+                    <span class="ai-badge">⚖️ บทวิเคราะห์และคำแนะนำทางกฎหมายโดย AI</span>
+                    <span class="ai-logo-tag">Legal Assistant</span>
+                </div>
+                
+                <div class="ai-analysis-section">
+                    <h4 class="ai-section-title">📌 มาตราที่เกี่ยวข้อง</h4>
+                    <p class="ai-section-text">${parseTextMarkup(legalAnalysis.relevant_sections)}</p>
+                </div>
+                
+                <div class="ai-analysis-section">
+                    <h4 class="ai-section-title">💡 ความหมายโดยทั่วไป</h4>
+                    <p class="ai-section-text">${parseTextMarkup(legalAnalysis.general_meaning)}</p>
+                </div>
+                
+                <div class="ai-analysis-section" style="border: none; padding-bottom: 0; margin-bottom: 0;">
+                    <h4 class="ai-section-title">📝 คำแนะนำสำหรับการปฏิบัติ</h4>
+                    <p class="ai-section-text highlight-rec">${parseTextMarkup(legalAnalysis.recommendation)}</p>
+                </div>
+            `;
+            resultsPanel.appendChild(aiCard);
+        }
+
+        if (!results || results.length === 0) {
+            resultsPanel.innerHTML = `
+                <div class="status-message">
+                    <div class="status-message-icon">🔍</div>
+                    <div>ไม่พบมาตรากฎหมายที่เกี่ยวข้องกับคำสืบค้นของคุณ</div>
+                </div>`;
+            return;
+        }
+
+        results.forEach(item => {
+            const parsedOriginal = parseTextMarkup(item.original_text);
+
+            let explanationBlock = "";
+            if (item.simplified_text && item.simplified_text.trim() !== "") {
+                const parsedSimplified = parseTextMarkup(item.simplified_text);
+                explanationBlock = `
+                    <div class="practice-explanation">
+                        <span class="practice-label">💡 คำอธิบายเชิงปฏิบัติและคดีตัวอย่าง</span>
+                        <p class="practice-text">${parsedSimplified}</p>
+                    </div>
+                `;
+            }
+
+            const card = document.createElement('div');
+            card.className = 'result-item';
+            card.innerHTML = `
+                <div class="result-header">
+                    <h3 class="result-title">⚖️ ${item.section}</h3>
+                    <span class="category-badge">${item.category}</span>
+                </div>
+                <div class="legal-document">
+                    <span class="document-label">📜 ถ้อยคำในประมวลกฎหมาย</span>
+                    <p class="document-text">${parsedOriginal}</p>
+                </div>
+                ${explanationBlock}
+            `;
+            resultsPanel.appendChild(card);
+        });
+    }
+</script>
+</body>
+</html>
