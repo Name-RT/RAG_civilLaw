@@ -146,6 +146,7 @@ DEEPSEEK_API_KEY=sk-...
 RAG_civilLaw/
 │
 ├── data/
+│   ├── processed_laws_template.json # ไฟล์จำลองข้อมูลกฎหมายเริ่มต้น
 │   └── processed_laws.json     # ไฟล์คลังฐานข้อมูลกฎหมาย (สร้างอัตโนมัติเมื่อรันครั้งแรก)
 │
 ├── docker-compose.yml          # คอนฟิกรัน Container สำหรับฐานข้อมูลเวกเตอร์ Qdrant
@@ -154,7 +155,10 @@ RAG_civilLaw/
 ├── .env                        # ไฟล์เก็บคีย์ API (สำหรับระบุ GEMINI_API_KEY)
 ├── .gitignore                  # ตัวกำหนดละเว้นไฟล์ประวัติ/ข้อมูลขนาดใหญ่ของ Git
 │
-├── main.py                     # ส่วนประมวลผลเซิร์ฟเวอร์หลังบ้าน (FastAPI)
+├── utils.py                    # ส่วนจัดการตัวแปรและฟังก์ชันช่วยเหลือ (หมวดหมู่/เช็คคำอธิบาย)
+├── database.py                 # ส่วนจัดการ Qdrant Vector Database
+├── llm_service.py              # ส่วนควบคุมโมเดล AI (Gemini, OpenAI, DeepSeek)
+├── main.py                     # ส่วนประมวลผลเซิร์ฟเวอร์หลังบ้าน (FastAPI Router)
 ├── index.html                  # หน้าเว็บแอปพลิเคชันสำหรับสืบค้น
 └── README.md                   # คู่มือการใช้งานโปรเจกต์
 ```
