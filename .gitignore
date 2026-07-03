@@ -172,7 +172,8 @@ clean_laws.py
 ingest.py
 
 # Data and data management scripts (kept locally but excluded from Git)
-data/
+data/*
+!data/processed_laws_template.json
 preprocess_pdf.py
 ingest_processed.py
 evaluate_rag.py

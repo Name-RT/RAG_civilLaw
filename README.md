@@ -100,10 +100,10 @@ docker-compose up -d
 แนะนำให้ใช้ **Conda** ในการสร้าง Environment ป้องกันไลบรารีชนกับโปรเจกต์อื่น:
 ```bash
 # 1. สร้างสภาพแวดล้อมจำลองใหม่สำหรับ Python 3.10
-conda create -n auditguard python=3.10 -y
+conda create -n rag-civillaw python=3.10 -y
 
 # 2. เปิดใช้งานกล่องสภาพแวดล้อม
-conda activate auditguard
+conda activate rag-civillaw
 
 # 3. ติดตั้งโมเดลและไลบรารี RAG ทั้งหมดที่ระบุในรายการไฟล์ติดตั้ง
 pip install -r requirements.txt
