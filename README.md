@@ -1,187 +1,346 @@
-# RAG_civilLaw
-ระบบค้นหาตัวบทกฎหมายและให้คำอธิบายประมวลกฎหมายแพ่งและพาณิชย์ของไทย
+# ⚖️ ThaiLaw AI
 
-[![Python](https://img.shields.io/badge/Python-3.10%2B-blue?style=flat-square&logo=python)](https://www.python.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.100%2B-009688?style=flat-square&logo=fastapi)](https://fastapi.tiangolo.com/)
-[![LlamaIndex](https://img.shields.io/badge/LlamaIndex-0.10%2B-red?style=flat-square)](https://www.llamaindex.ai/)
-[![Qdrant](https://img.shields.io/badge/Qdrant-Vector%20DB-0080FF?style=flat-square&logo=qdrant)](https://qdrant.tech/)
-[![MLflow](https://img.shields.io/badge/MLflow-MLOps-0194E2?style=flat-square&logo=mlflow)](https://mlflow.org/)
-[![Google Gemini](https://img.shields.io/badge/Google%20Gemini-API-4285F4?style=flat-square&logo=googlegemini)](https://ai.google.dev/)
-[![Docker](https://img.shields.io/badge/Docker-Container-2496ED?style=flat-square&logo=docker)](https://www.docker.com/)
+> ระบบค้นหาและวิเคราะห์กฎหมายไทย (ประมวลกฎหมายแพ่ง + อาญา) ด้วย RAG + LLM  
+> รองรับ DeepSeek · OpenAI · Google Gemini — สลับได้จาก Admin Panel ไม่ต้อง restart
 
-ระบบค้นหามาตรากฎหมายแพ่งและพาณิชย์ ทำงานร่วมกับฐานข้อมูลเวกเตอร์แบบออฟไลน์ (Local Vector Database) เพื่อดึงมาตราที่เกี่ยวข้องขึ้นมาแสดงผลคู่กับคำอธิบาย และสามารถส่งต่อข้อมูลให้โมเดลภาษา (LLM) เช่น Google Gemini API (หรือ OpenAI / DeepSeek สำรอง) ช่วยสรุปวิเคราะห์เป็นคำแนะนำการปฏิบัติตัวได้
-
-*หมายเหตุ: โครงการนี้ไม่ได้รวบรวมไฟล์คลังข้อมูลกฎหมายตัวเต็มมาให้ใน Repository เพื่อความเป็นระเบียบและติดเงื่อนไขการเผยแพร่ข้อมูลลิขสิทธิ์ อย่างไรก็ตามระบบรองรับระบบจำลองข้อมูลเริ่มต้นทำงานทันทีหลังโคลน (Zero-Configuration Demo Mode) ซึ่งจะอธิบายวิธีเริ่มใช้งานไว้อย่างละเอียดด้านล่างนี้*
+![Python](https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?logo=fastapi&logoColor=white)
+![Qdrant](https://img.shields.io/badge/Qdrant-Vector_DB-DC143C?logo=qdrant&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-required-2496ED?logo=docker&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-F7DC6F)
 
 ---
 
-## 📸 ตัวอย่างหน้าตาโปรแกรม (User Interface)
+## 📋 สารบัญ
 
-![ระบบค้นหาตัวบทกฎหมายแพ่งและพาณิชย์](./ตัวอย่าง.png)
-
----
-
-## คุณสมบัติ
-
-1. **AI Legal Assistant (ผู้ช่วยวิเคราะห์กฎหมาย):**
-   * ระบบสามารถต่อท่อเชื่อมกับ **Google Gemini API** (โมเดล `gemini-2.0-flash`) เพื่อนำคำถามของผู้ใช้และมาตราที่สืบค้นได้ไปร่วมวิเคราะห์
-   * AI จะสรุปตัวบทกฎหมายที่ยาวและซับซ้อนให้เข้าใจง่ายในภาษาพูดของคนทั่วไป พร้อมให้คำแนะนำวิธีปฏิบัติตัวเชิงกฎหมาย (เช่น สิทธิ์การฟ้องร้อง และการเตรียมพยานหลักฐานต่างๆ)
-   * รองรับระบบสำรอง (Graceful Fallback) ไปยัง **OpenAI** (`gpt-4o-mini`) หรือ **DeepSeek** (`deepseek-chat`) อัตโนมัติหาก API คีย์หลักมีปัญหา
-
-2. **Intent-based Scoped Retrieval (กรองมาตราตรงหมวดหมู่):** 
-   * ตรวจจับความตั้งใจของผู้ถามเบื้องต้น (เช่น พิมพ์คีย์เวิร์ดเกี่ยวกับ หย่า บุตร สมรส จะกรองเข้าหมวดครอบครัว) เพื่อกรองมาตราที่จะดึงจาก Qdrant ให้ตรงหมวดหมู่มากที่สุด ป้องกันปัญหาระบบหลงไปดึงคำพ้องเสียงหรือคำใกล้เคียงที่อยู่ผิดหมวด
-
-3. **Deduplication (ระบบคัดกรองมาตราซ้ำ):**
-   * ตัดประเด็นการแสดงผลมาตราซ้ำซ้อนที่อาจเกิดจากการดึงชิ้นส่วนข้อความ (Chunk) หลายข้อความจากมาตราเดียวกัน ทำให้การสืบค้นแสดงมาตรากฎหมายอื่นที่เกี่ยวข้องเพิ่มขึ้น
-
-4. **Judicial UI Design (การจัดวางสไตล์ราชการ):**
-   * ออกแบบหน้าเว็บโทนสีกรมท่า-ขอบทองครีม สบายตา สไตล์ทางการ พร้อมระบบลิ้นชักแสดงผล (Sliding Drawer) เมื่อต้องการเปิดดูเนื้อหามาตราอ้างอิงย่อยด้านขวาของหน้าต่างหลัก
-
-5. **Fail-safe Mode (โหมดจำลองสถานะออฟไลน์):**
-   * ตรวจวัดสถานะการเชื่อมต่อหลังบ้าน (FastAPI Health Check) ภายใน 2.5 วินาที หากเซิร์ฟเวอร์ยังไม่เปิด ระบบจะสลับเข้าสู่โหมดจำลอง (Offline Demo Mode) ให้ผู้ใช้กดทดลองค้นหาข้อมูลสาธิตในเครื่องได้ทันทีเพื่อป้องกันหน้าเว็บค้าง
+- [ภาพรวมระบบ](#-ภาพรวมระบบ)
+- [System Architecture](#-system-architecture)
+- [RAG Pipeline](#-rag-pipeline)
+- [โครงสร้างไฟล์](#-โครงสร้างไฟล์)
+- [การติดตั้ง (Quick Start)](#-การติดตั้ง-quick-start)
+- [การตั้งค่า Environment](#-การตั้งค่า-environment)
+- [วิธีรันระบบ](#-วิธีรันระบบ)
+- [API Reference](#-api-reference)
+- [Admin Panel](#-admin-panel)
+- [การปรับแต่งขั้นสูง](#-การปรับแต่งขั้นสูง)
 
 ---
 
-## 🏗️ แผนผังโครงสร้างการทำงาน (System Flow)
+## 🎥 Video Demo
 
-```mermaid
-flowchart TD
-    subgraph Data Pipeline [การเตรียมข้อมูล]
-        A[data/แพ่ง.pdf] -->|preprocess_pdf.py| B[สกัดแยกมาตราและจัดหมวดหมู่]
-        B --> D[data/processed_laws.json]
-    end
+<video src="./demo.mp4" controls="controls" style="max-width: 100%; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);"></video>
 
-    subgraph Vector Database [ฐานข้อมูลเวกเตอร์]
-        D -->|ingest_processed.py| E[(Qdrant Vector DB)]
-    end
+---
+## 🌐 ภาพรวมระบบ
 
-    subgraph Backend Service [ระบบ API & LLM]
-        F[ผู้ใช้งานพิมพ์คำค้นหา] -->|index.html| G[FastAPI Server]
-        G -->|1. จำแนกหมวดคำถาม| H[กรองข้อมูลตามหมวดหมู่]
-        H -->|2. สืบค้น| E
-        E -->|ดึงผลลัพธ์ top_k| I[3. Match ตัวบทและลบตัวซ้ำ]
-        I -->|4. ส่งวิเคราะห์| J[Gemini / OpenAI API]
-        J -->|5. ส่งคำแนะนำและตัวบท| G
-    end
+ThaiLaw AI ช่วยให้ประชาชนทั่วไปสามารถถามคำถามกฎหมายเป็น **ภาษาพูดธรรมดา** แล้วได้รับคำแนะนำพร้อมอ้างอิงมาตราจากฐานข้อมูลกฎหมายจริง
+
+**ตัวอย่าง:**
+- ถาม: *"เพื่อนยืมเงินไม่คืน ทำอย่างไรดี?"*
+- ระบบค้น: **มาตรา ๖๕๓, ๑๙๔** (กู้ยืม, หนี้และการชำระหนี้)
+- AI ตอบ: คำแนะนำขั้นตอน + หลักฐานที่ต้องเตรียม
+
+---
+
+## 🏗️ System Architecture
+
+![ThaiLaw AI System Architecture](docs/architecture.jpg)
+
+| Component | เทคโนโลยี | หน้าที่ |
+|-----------|-----------|--------|
+| **Frontend** | Vanilla HTML/CSS/JS | หน้าค้นหา + Admin Panel |
+| **Backend** | FastAPI + Uvicorn | API server + RAG controller |
+| **Vector DB** | Qdrant (Docker) | เก็บ embedding กฎหมาย 384d |
+| **Embedding** | multilingual-e5-small | แปลงข้อความ → vector |
+| **LLM** | DeepSeek / OpenAI / Gemini | Query Expansion + Analysis |
+| **Reranker** | BGE-Reranker-v2-m3 | จัดอันดับผลลัพธ์ (optional) |
+
+---
+
+## 🔄 RAG Pipeline
+
+![ThaiLaw AI RAG Pipeline](docs/pipeline.jpg)
+
+### LLM Priority Routing
+
+| Provider | Model | ราคา | เหมาะกับ |
+|----------|-------|------|---------|
+| 🐋 **DeepSeek** | `deepseek-v4-flash` | ถูกสุด ⭐ | งานทั่วไป (แนะนำ) |
+| 🤖 **OpenAI** | `gpt-5.6-luna` | กลาง | งานทั่วไป |
+| ✨ **Gemini** | `gemini-3.5-flash` | กลาง | งานทั่วไป |
+
+---
+
+## 📁 โครงสร้างไฟล์
+
+```
+thai-law-ai/
+│
+├── 📄 main.py              # FastAPI app + RAG pipeline controller
+├── 📄 config.py            # ค่าคงที่ทั้งหมด (models, paths, defaults)
+├── 📄 database.py          # Qdrant connection + Vector indexing
+├── 📄 llm_service.py       # Query Expansion + LLM Analysis
+├── 📄 guardrails.py        # Security: injection + relevance + score filter
+├── 📄 admin.py             # Admin API (settings, law data management)
+├── 📄 utils.py             # Keyword classifier + text utilities
+├── 📄 reranker.py          # BGE CrossEncoder reranker (optional)
+├── 📄 ingest_processed.py  # นำเข้าข้อมูลกฎหมายจาก JSON → Qdrant
+├── 📄 scrape_laws.py       # ดึงข้อมูลกฎหมายจาก lawonline.go.th
+│
+├── 📄 index.html           # หน้าค้นหากฎหมาย (Frontend)
+├── 📄 requirements.txt     # Python dependencies
+├── 📄 docker-compose.yml   # รัน Qdrant ด้วย Docker
+├── 📄 .env                 # API Keys (ไม่ commit ขึ้น Git)
+│
+├── 📁 static/
+│   └── admin.html          # หน้า Admin Panel (serve ที่ /admin)
+│
+├── 📁 docs/
+│   ├── pipeline.jpg        # RAG Pipeline diagram
+│   └── architecture.jpg    # System Architecture diagram
+│
+└── 📁 data/
+    ├── processed_laws.json  # ข้อมูลกฎหมายที่ประมวลผลแล้ว
+    └── settings.json        # การตั้งค่าระบบ (สร้างอัตโนมัติ)
 ```
 
----
+### Module Dependencies
 
-## 🛠️ รายการเทคโนโลยีหลัก (Tech Stack)
-
-* **RAG Framework:** [LlamaIndex](https://github.com/run-llama/llama_index)
-* **LLM Engine:** Google Gemini SDK (`google-generativeai`)
-* **Vector DB:** [Qdrant](https://qdrant.tech/) (ใน Docker Container)
-* **Embedding Model:** `intfloat/multilingual-e5-small` (ดาวน์โหลดใช้ในเครื่อง)
-* **Web Framework:** [FastAPI](https://fastapi.tiangolo.com/) และ Uvicorn
-* **Frontend:** Vanilla HTML, CSS และ JavaScript
+- `main.py` เรียกใช้ฟังก์ชันหลักจาก `database.py`, `llm_service.py`, `guardrails.py`, และ `utils.py`
+- การตั้งค่าส่วนใหญ่จะดึงมาจาก `config.py`
+- `admin.py` ใช้จัดการข้อมูลและทำงานร่วมกับ `reranker.py`
 
 ---
 
-## 🚀 คู่มือขั้นตอนการเริ่มใช้งานโปรเจกต์อย่างละเอียด (How to Setup & Run)
+## ⚡ การติดตั้ง (Quick Start)
 
-เมื่อท่านทำการโคลนโปรเจกต์นี้จาก GitHub ไปใช้งาน มีขั้นตอนที่ต้องจัดเตรียมและเริ่มระบบทั้งหมดดังนี้:
+### Prerequisites
 
-### 1. โคลนและเปิดโฟลเดอร์โครงการ
-ใช้ Git ในการดึงซอร์สโค้ดของโปรเจกต์:
+- Python 3.10+
+- Docker Desktop
+- API Key จาก DeepSeek / OpenAI / Gemini อย่างน้อย 1 ตัว
+
+### 1. Clone repository
+
 ```bash
-git clone https://github.com/Name-RT/RAG_civilLaw.git
-cd RAG_civilLaw
+git clone https://github.com/your-username/thai-law-ai.git
+cd thai-law-ai
 ```
 
-### 2. สตาร์ทฐานข้อมูลเวกเตอร์ (Vector Database)
-โปรเจกต์นี้ใช้ **Qdrant** ในการเก็บเวกเตอร์และทำ Semantic Search ท่านจำเป็นต้องใช้ **Docker Desktop** ในการจำลองฐานข้อมูลขึ้นมา โดยพิมพ์คำสั่งนี้ในหน้าต่าง Terminal/Command Prompt:
+### 2. สร้าง virtual environment
+
+```bash
+# ด้วย conda
+conda create -n thai-law python=3.10
+conda activate thai-law
+
+# หรือด้วย venv
+python -m venv venv
+venv\Scripts\activate     # Windows
+source venv/bin/activate  # Linux/Mac
+```
+
+### 3. ติดตั้ง dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### 4. รัน Qdrant ด้วย Docker
+
 ```bash
 docker-compose up -d
 ```
-*การตรวจสอบ: เข้าไปที่บราวเซอร์แล้วกดเปิดหน้า `http://localhost:5000` (MLflow สำหรับดูระบบบันทึกความคืบหน้า) และ `http://localhost:6333/dashboard` (Qdrant Dashboard) หากเข้าดูได้แสดงว่าฐานข้อมูลเวกเตอร์เปิดบริการเรียบร้อยแล้ว*
 
-### 3. ติดตั้งไลบรารีและสภาพแวดล้อมภาษา Python
-แนะนำให้ใช้ **Conda** ในการสร้าง Environment ป้องกันไลบรารีชนกับโปรเจกต์อื่น:
+> ✅ ตรวจสอบ: http://localhost:6333/dashboard
+
+### 5. ตั้งค่า API Keys
+
 ```bash
-# 1. สร้างสภาพแวดล้อมจำลองใหม่สำหรับ Python 3.10
-conda create -n rag-civillaw python=3.10 -y
-
-# 2. เปิดใช้งานกล่องสภาพแวดล้อม
-conda activate rag-civillaw
-
-# 3. ติดตั้งโมเดลและไลบรารี RAG ทั้งหมดที่ระบุในรายการไฟล์ติดตั้ง
-pip install -r requirements.txt
+cp .env.example .env
+# แก้ไข .env ใส่ API keys
 ```
-*(เมื่อลงไลบรารีเรียบร้อย ในการเปิดรันครั้งแรกระบบจะดาวน์โหลดโมเดล `intfloat/multilingual-e5-small` ขนาดเล็กเพียง ~120MB ลงมาเก็บไว้ในเครื่องเพื่อประมวลผลคำแปลเวกเตอร์แบบออฟไลน์)*
 
-### 4. จัดเตรียมคีย์ API สำหรับผู้ช่วยวิเคราะห์ AI (.env)
-สร้างไฟล์ชื่อ `.env` ไว้ที่โฟลเดอร์นอกสุดของโปรเจกต์ (ระดับเดียวกับ `main.py`) และระบุ API Key ของท่าน:
+### 6. นำเข้าข้อมูลกฎหมาย
+
+```bash
+python ingest_processed.py
+```
+
+### 7. รัน Server
+
+```bash
+python main.py
+```
+
+เปิด **http://127.0.0.1:8000** ✅
+
+---
+
+## 🔑 การตั้งค่า Environment
+
+สร้างไฟล์ `.env` ที่ root ของโปรเจกต์:
+
 ```env
-GEMINI_API_KEY=AIzaSy... (ระบุคีย์ Google Gemini ที่ได้จาก Google AI Studio)
-# ตัวเลือกเสริมสำหรับการทำระบบวิเคราะห์คดีแบบสลับสำรอง (Fallback)
-OPENAI_API_KEY=sk-...
-DEEPSEEK_API_KEY=sk-...
+# ใส่อย่างน้อย 1 ตัว — ระบบจะ fallback อัตโนมัติถ้าตัวแรกล้มเหลว
+
+# DeepSeek (แนะนำ: ราคาถูกที่สุด)
+DEEPSEEK_API_KEY=sk-xxxxxxxxxxxxxxxx
+
+# Google Gemini
+GEMINI_API_KEY=AIzaxxxxxxxxxxxxxxxx
+
+# OpenAI
+OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxx
 ```
 
-### 5. การจัดการไฟล์ข้อมูลดิบและระบบจำลองเริ่มต้น (Database & Auto-Ingestion)
-
-> [!IMPORTANT]
-> **ระบบรองรับการรันทันทีหลังโคลน (Zero-Configuration Demo Mode)**
-> ไฟล์ประมวลกฎหมายตัวเต็มไม่ได้ถูกบันทึกขึ้น GitHub เนื่องจากติดเงื่อนไขการเผยแพร่ลิขสิทธิ์ข้อมูล อย่างไรก็ตาม ทันทีที่ท่านสตาร์ทโปรแกรมหลังบ้านเป็นครั้งแรกด้วยคำสั่ง `python main.py` ระบบจะตรวจสอบโฟลเดอร์อัตโนมัติ หากไม่พบฐานข้อมูลระบบจะสร้างโฟลเดอร์เก็บข้อมูล `data/` และสร้างคลังกฎหมายตัวอย่าง `data/processed_laws.json` (มีมาตรา 15, 21, 420, 653, 1304) พร้อมทำเวกเตอร์นำเข้าฐานข้อมูล Qdrant ให้เองทันที เพื่อให้ท่านพร้อมพิมพ์ค้นหาและส่งทดสอบให้ AI ประเมินได้โดยไม่ต้องมีข้อมูลดิบมาก่อน!
-
-**การนำเข้าข้อมูลกฎหมายจริงของท่านเอง:**
-หากท่านมีไฟล์คลังกฎหมายของตนเอง ให้สร้างโฟลเดอร์ชื่อ `data` และบันทึกไฟล์ในรูปแบบชื่อ `processed_laws.json` โดยจัดโครงสร้างข้อมูลตามรูปแบบ **JSON Schema** ที่แจ้งไว้ในส่วนท้ายสุดของคู่มือนี้ เมื่อวางไฟล์แล้วให้เปิดโปรแกรมในโฟลเดอร์ `main.py` ระบบจะดึงฐานข้อมูลตัวเต็มของท่านไปประมวลผลเวกเตอร์เก็บลง Qdrant ใหม่ทันที
-
-### 6. เริ่มการทำงานหลังบ้านและเปิดหน้าต่างเว็บแอป
-1. รัน API เซิร์ฟเวอร์ใน Command Prompt/Terminal:
-   ```bash
-   python main.py
-   ```
-   *(รอจนหน้าจอแสดงสถานะ Uvicorn running on http://127.0.0.1:8000)*
-2. ดับเบิ้ลคลิกเปิดไฟล์ `index.html` บนเบราว์เซอร์ของท่านเพื่อเข้าใช้งานและทดลองสืบค้นความเห็น AI ได้ทันที!
+> ⚠️ **.env ถูกกั้นโดย .gitignore แล้ว — อย่า commit ขึ้น Git เด็ดขาด**
 
 ---
 
-## 📁 โครงสร้างไฟล์ในโฟลเดอร์ของโปรเจกต์ (Project Structure)
+## 🚀 วิธีรันระบบ
 
-โครงสร้างโฟลเดอร์โครงการสำหรับการเริ่มต้นใช้งานและรันระบบ:
+```bash
+# รัน server
+python main.py
 
-```
-RAG_civilLaw/
-│
-├── data/
-│   ├── processed_laws_template.json # ไฟล์จำลองข้อมูลกฎหมายเริ่มต้น
-│   └── processed_laws.json     # ไฟล์คลังฐานข้อมูลกฎหมาย (สร้างอัตโนมัติเมื่อรันครั้งแรก)
-│
-├── docker-compose.yml          # คอนฟิกรัน Container สำหรับฐานข้อมูลเวกเตอร์ Qdrant
-├── requirements.txt            # รายการไลบรารีที่ต้องใช้ในการติดตั้ง
-├── ตัวอย่าง.png                  # รูปภาพแสดงตัวอย่างหน้าจอผู้ใช้ของแอปพลิเคชัน
-├── .env                        # ไฟล์เก็บคีย์ API (สำหรับระบุ GEMINI_API_KEY)
-├── .gitignore                  # ตัวกำหนดละเว้นไฟล์ประวัติ/ข้อมูลขนาดใหญ่ของ Git
-│
-├── utils.py                    # ส่วนจัดการตัวแปรและฟังก์ชันช่วยเหลือ (หมวดหมู่/เช็คคำอธิบาย)
-├── database.py                 # ส่วนจัดการ Qdrant Vector Database
-├── llm_service.py              # ส่วนควบคุมโมเดล AI (Gemini, OpenAI, DeepSeek)
-├── main.py                     # ส่วนประมวลผลเซิร์ฟเวอร์หลังบ้าน (FastAPI Router)
-├── index.html                  # หน้าเว็บแอปพลิเคชันสำหรับสืบค้น
-└── README.md                   # คู่มือการใช้งานโปรเจกต์
+# รัน dev mode พร้อม auto-reload
+uvicorn main:app --reload
+
+# ดู API docs (Swagger UI)
+open http://127.0.0.1:8000/docs
 ```
 
 ---
 
-## 📄 โครงสร้างและรูปแบบข้อมูลของไฟล์ฐานข้อมูลกฎหมาย (JSON Schema)
+## 📡 API Reference
 
-ไฟล์คลังประมวลกฎหมาย `data/processed_laws.json` เก็บข้อมูลในรูปแบบ Array of Objects โดยแต่ละชุดประกอบด้วยมาตรา หมวดหมู่ ตัวบทกฎหมายดั้งเดิม และคำอธิบายความหมายย่อยในภาษาพูดทั่วไป ตามตัวอย่างด้านล่างนี้:
+### `POST /ask` — ค้นหาและวิเคราะห์กฎหมาย
+
+**Request:**
+```json
+{
+  "query": "เพื่อนยืมเงินไม่คืนทำอย่างไร",
+  "top_k": 5
+}
+```
+
+**Response:**
+```json
+{
+  "query": "เพื่อนยืมเงินไม่คืนทำอย่างไร",
+  "detected_category": "กู้ยืมและค้ำประกัน",
+  "found": 3,
+  "results": [
+    {
+      "rank": 1,
+      "score": 0.82,
+      "section": "มาตรา ๖๕๓",
+      "category": "กู้ยืมและค้ำประกัน",
+      "original_text": "การกู้ยืมเงินกว่าสองพันบาทขึ้นไป...",
+      "simplified_text": "ถ้าจะฟ้องหนี้เกิน 2,000 บาท ต้องมีหลักฐาน..."
+    }
+  ],
+  "legal_analysis": {
+    "has_analysis": true,
+    "relevant_sections": "มาตรา ๖๕๓, มาตรา ๑๙๔",
+    "general_meaning": "กฎหมายกำหนดว่า...",
+    "recommendation": "คุณควรดำเนินการดังนี้..."
+  }
+}
+```
+
+### `GET /section/{num}` — ดูตัวบทมาตรา
+
+```bash
+GET /section/420     # เลขอารบิก
+GET /section/๔๒๐    # เลขไทย
+```
+
+### `GET /health` — ตรวจสอบสถานะ
 
 ```json
-[
-  {
-    "section": "มาตรา ๑๕",
-    "category": "บุคคลและความสามารถทางกฎหมาย",
-    "original_text": "สภาพบุคคลย่อมเริ่มแต่เมื่อคลอดแล้วอยู่รอดเป็นทารก และสิ้นสุดลงเมื่อตาย",
-    "simplified_text": "สภาพความเป็นบุคคลเริ่มต้นตั้งแต่เวลาที่เราเกิดมาและรอดชีวิต และจะสิ้นสุดลงเมื่อเราเสียชีวิต"
-  },
-  {
-    "section": "มาตรา ๖๕๓",
-    "category": "กู้ยืมและค้ำประกัน",
-    "original_text": "การกู้ยืมเงินกว่าสองพันบาทขึ้นไปนั้น หากมิได้มีหลักฐานเป็นหนังสืออย่างใดอย่างหนึ่งลงลายมือชื่อผู้ยืมเป็นสำคัญ จะฟ้องร้องบังคับคดีหาได้ไม่",
-    "simplified_text": "หากกู้ยืมเงินกันเกินกว่า 2,000 บาทขึ้นไป จะต้องมีหลักฐานการกู้เงินเป็นหนังสือหรือลายลักษณ์อักษรที่ลงลายมือชื่อผู้ยืม จึงจะสามารถใช้ฟ้องร้องดำเนินคดีตามกฎหมายได้"
-  }
+{ "status": "OK", "database_connected": true }
+```
+
+### Admin API
+
+| Method | Path | คำอธิบาย |
+|--------|------|---------|
+| `GET` | `/api/admin/settings` | ดูการตั้งค่าปัจจุบัน |
+| `POST` | `/api/admin/settings` | แก้ไขการตั้งค่า |
+| `POST` | `/api/admin/sync` | Sync ข้อมูลจาก HuggingFace |
+| `GET` | `/api/admin/laws` | ค้นหารายการกฎหมาย |
+| `PUT` | `/api/admin/laws` | แก้ไขข้อมูลกฎหมาย |
+
+---
+
+## 🛠️ Admin Panel
+
+เปิด **http://127.0.0.1:8000/admin**
+
+| การตั้งค่า | ค่าเริ่มต้น | คำอธิบาย |
+|-----------|------------|---------|
+| `active_llm` | `deepseek` | เลือก LLM หลัก |
+| `top_k` | `5` | จำนวนมาตราที่แสดง |
+| `similarity_threshold` | `0.4` | คะแนนต่ำสุดที่ยอมรับ |
+| `use_reranker` | `false` | เปิด BGE Reranker |
+| `chunk_size` | `512` | ขนาด chunk เมื่อ ingest |
+
+---
+
+## 🔧 การปรับแต่งขั้นสูง
+
+### เปลี่ยน Embedding Model
+
+แก้ไข `config.py`:
+```python
+EMBED_MODEL_NAME = "intfloat/multilingual-e5-large"
+EMBED_DIM        = 1024
+```
+> ⚠️ ถ้าเปลี่ยนโมเดล ต้อง **ลบ Qdrant collection และ ingest ใหม่**
+
+### เปิด Reranker
+
+ใน Admin Panel ตั้ง `use_reranker = true`  
+โมเดล `BAAI/bge-reranker-v2-m3` จะโหลดอัตโนมัติ
+
+### เพิ่มหมวดหมู่กฎหมาย
+
+แก้ไข `utils.py` → `CATEGORY_KEYWORDS`:
+```python
+CATEGORY_KEYWORDS = [
+    ("ชื่อหมวด", ["keyword1", "keyword2"]),
+    # เพิ่ม tuple ใหม่ที่นี่
 ]
 ```
+
+---
+
+## 📦 Dependencies หลัก
+
+| Package | วัตถุประสงค์ |
+|---------|------------|
+| `fastapi` | Web framework |
+| `uvicorn` | ASGI server |
+| `qdrant-client` | Vector DB client |
+| `llama-index` | RAG framework |
+| `sentence-transformers` | Embedding + Reranker |
+| `openai` | DeepSeek / OpenAI client |
+| `google-generativeai` | Gemini client |
+| `slowapi` | Rate limiting |
+| `python-dotenv` | Environment variables |
+
+---
+
+## ⚠️ คำเตือนทางกฎหมาย
+
+> ThaiLaw AI เป็นเครื่องมือค้นหาข้อมูลกฎหมายเบื้องต้นเท่านั้น  
+> **ไม่ใช่คำปรึกษาทางกฎหมายที่มีผลผูกพัน**  
+> สำหรับคดีความจริง โปรดปรึกษาทนายความที่ได้รับใบอนุญาต
+
+---
+
+## 📄 License
+
+MIT License

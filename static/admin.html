@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LegalShield AI - Admin Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <div class="container mt-5">
+        <h2 class="mb-4">⚙️ การตั้งค่าระบบหลังบ้าน (Admin Dashboard)</h2>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-primary text-white">ตั้งค่าการค้นหา (Retrieval)</div>
+                    <div class="card-body">
+                        <form id="settingsForm">
+                            <div class="mb-3">
+                                <label class="form-label">โมเดลประมวลผลผลลัพธ์ (Active LLM)</label>
+                                <select class="form-select" id="active_llm">
+                                    <option value="gemini">Gemini</option>
+                                    <option value="openai">OpenAI</option>
+                                    <option value="deepseek">DeepSeek</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">จำนวนผลลัพธ์สูงสุด (Top-K)</label>
+                                <input type="number" class="form-control" id="top_k" min="1" max="20">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">เกณฑ์ความแม่นยำขั้นต่ำ (Similarity Threshold)</label>
+                                <input type="number" step="0.05" class="form-control" id="similarity_threshold" min="0" max="1">
+                                <small class="text-muted">คะแนน 0.0 - 1.0 (แนะนำ 0.6 - 0.75)</small>
+                            </div>
+                            <div class="mb-3 form-check">
+                                <input type="checkbox" class="form-check-input" id="use_reranker">
+                                <label class="form-check-label" for="use_reranker">เปิดใช้งาน Reranker (ประมวลผลซ้ำเพื่อเพิ่มความแม่นยำ - ใช้ RAM สูง)</label>
+                            </div>
+                            
+                            <!-- Chunk Settings (สำหรับการเทรนในอนาคต) -->
+                            <hr>
+                            <h6 class="text-muted">Chunking Settings (ผลต่อการอัปเดตฐานข้อมูล)</h6>
+                            <div class="mb-3">
+                                <label class="form-label">Chunk Size</label>
+                                <input type="number" class="form-control" id="chunk_size">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Chunk Overlap</label>
+                                <input type="number" class="form-control" id="chunk_overlap">
+                            </div>
+
+                            <button type="submit" class="btn btn-success w-100">💾 บันทึกการตั้งค่า</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card shadow-sm mb-4 border-danger">
+                    <div class="card-header bg-danger text-white">จัดการฐานข้อมูล (Database)</div>
+                    <div class="card-body">
+                        <p class="card-text">ดึงข้อมูลกฎหมายฉบับใหม่จาก Hugging Face (open-law-data-thailand/soc-ratchakitcha) และรีเซ็ตฐานข้อมูล Qdrant ทันที</p>
+                        <button id="btnSync" class="btn btn-outline-danger w-100">🔄 อัปเดตข้อมูล (Sync Database)</button>
+                        <div id="syncStatus" class="mt-3 text-center" style="display: none;">
+                            <div class="spinner-border text-danger" role="status"></div>
+                            <p class="mt-2 text-danger">กำลังประมวลผล... อาจใช้เวลาหลายนาที</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Data Management Section -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-success text-white">จัดการข้อมูลกฎหมาย (Data Management)</div>
+                    <div class="card-body">
+                        <div class="input-group mb-3">
+                            <select class="form-select" id="typeFilter" style="max-width: 150px;">
+                                <option value="">ทุกประเภท</option>
+                                <option value="แพ่ง">แพ่ง</option>
+                                <option value="อาญา">อาญา</option>
+                                <option value="พรบ">พ.ร.บ.</option>
+                            </select>
+                            <input type="text" class="form-control" id="searchInput" placeholder="ค้นหาชื่อมาตรา, พ.ร.บ., หรือ เนื้อหา...">
+                            <button class="btn btn-outline-success" type="button" id="btnSearch">ค้นหา</button>
+                        </div>
+                        
+                        <div class="table-responsive" style="max-height: 400px;">
+                            <table class="table table-hover">
+                                <thead class="table-light sticky-top">
+                                    <tr>
+                                        <th style="width: 10%;">ประเภท</th>
+                                        <th style="width: 25%;">มาตรา / ชื่อเรื่อง</th>
+                                        <th style="width: 15%;">หมวดหมู่</th>
+                                        <th style="width: 40%;">ตัวบทย่อ</th>
+                                        <th style="width: 10%;">จัดการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="lawsTableBody">
+                                    <!-- Rows will be populated here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div class="modal fade" id="editModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">แก้ไขข้อมูลมาตรา</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editForm">
+                        <div class="row">
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">ประเภท</label>
+                                <select class="form-select" id="edit_law_type">
+                                    <option value="แพ่ง">แพ่ง</option>
+                                    <option value="อาญา">อาญา</option>
+                                    <option value="พรบ">พ.ร.บ.</option>
+                                    <option value="ทั่วไป">ทั่วไป</option>
+                                </select>
+                            </div>
+                            <div class="col-md-9 mb-3">
+                                <label class="form-label">ชื่อกฎหมายแม่ (ห้ามแก้ - Key)</label>
+                                <input type="text" class="form-control" id="edit_law_name" readonly>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">ชื่อมาตรา (ห้ามแก้ - Key)</label>
+                            <input type="text" class="form-control" id="edit_section" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">หมวดหมู่</label>
+                            <input type="text" class="form-control" id="edit_category">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">ตัวบทกฎหมายดิบ (Original Text)</label>
+                            <textarea class="form-control" id="edit_original" rows="5"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">คำอธิบายง่ายๆ (Simplified Text)</label>
+                            <textarea class="form-control" id="edit_simplified" rows="3"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="button" class="btn btn-success" id="btnSaveLaw">บันทึกและอัปเดตระบบ</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // โหลดการตั้งค่าตอนเปิดหน้า
+        async function loadSettings() {
+            try {
+                const res = await fetch('/api/admin/settings');
+                const data = await res.json();
+                document.getElementById('active_llm').value = data.active_llm;
+                document.getElementById('top_k').value = data.top_k;
+                document.getElementById('similarity_threshold').value = data.similarity_threshold;
+                document.getElementById('use_reranker').checked = data.use_reranker;
+                document.getElementById('chunk_size').value = data.chunk_size;
+                document.getElementById('chunk_overlap').value = data.chunk_overlap;
+            } catch (error) {
+                alert('ไม่สามารถโหลดการตั้งค่าได้: ' + error);
+            }
+        }
+
+        // บันทึกการตั้งค่า
+        document.getElementById('settingsForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const payload = {
+                active_llm: document.getElementById('active_llm').value,
+                top_k: parseInt(document.getElementById('top_k').value),
+                similarity_threshold: parseFloat(document.getElementById('similarity_threshold').value),
+                use_reranker: document.getElementById('use_reranker').checked,
+                chunk_size: parseInt(document.getElementById('chunk_size').value),
+                chunk_overlap: parseInt(document.getElementById('chunk_overlap').value)
+            };
+            
+            try {
+                const res = await fetch('/api/admin/settings', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                const result = await res.json();
+                alert(result.message);
+            } catch (error) {
+                alert('เกิดข้อผิดพลาดในการบันทึก');
+            }
+        });
+
+        // สั่ง Sync Database
+        document.getElementById('btnSync').addEventListener('click', async () => {
+            if(!confirm("การซิงค์จะลบข้อมูลเก่าและดึงข้อมูลใหม่จาก Hugging Face คุณแน่ใจหรือไม่? (ข้อมูลที่แก้เองจะหายไป)")) return;
+            
+            document.getElementById('btnSync').disabled = true;
+            document.getElementById('syncStatus').style.display = 'block';
+            
+            try {
+                const res = await fetch('/api/admin/sync', { method: 'POST' });
+                const result = await res.json();
+                alert(result.message || "อัปเดตสำเร็จ");
+                loadLaws(); // Refresh table
+            } catch (error) {
+                alert('เกิดข้อผิดพลาดในการซิงค์ฐานข้อมูล');
+            } finally {
+                document.getElementById('btnSync').disabled = false;
+                document.getElementById('syncStatus').style.display = 'none';
+            }
+        });
+
+        // ==========================================
+        // Data Management JS
+        // ==========================================
+        
+        let currentLaws = [];
+        let editModal = null;
+
+        async function loadLaws(search = "", law_type = "") {
+            try {
+                const res = await fetch(`/api/admin/laws?search=${encodeURIComponent(search)}&law_type=${encodeURIComponent(law_type)}`);
+                currentLaws = await res.json();
+                renderTable();
+            } catch (error) {
+                console.error("Failed to load laws", error);
+            }
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('lawsTableBody');
+            tbody.innerHTML = '';
+            
+            if(currentLaws.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">ไม่พบข้อมูล</td></tr>';
+                return;
+            }
+
+            currentLaws.forEach((law, index) => {
+                const textPreview = (law.original_text || "").substring(0, 80) + ((law.original_text || "").length > 80 ? '...' : '');
+                
+                let typeBadge = 'bg-secondary';
+                if(law.law_type === 'อาญา') typeBadge = 'bg-danger';
+                if(law.law_type === 'แพ่ง') typeBadge = 'bg-info';
+                if(law.law_type === 'พรบ') typeBadge = 'bg-warning text-dark';
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><span class="badge ${typeBadge}">${law.law_type || 'ทั่วไป'}</span></td>
+                    <td><strong>${law.section}</strong><br><small class="text-muted">${(law.law_name || "").substring(0,40)}...</small></td>
+                    <td><span class="badge bg-secondary">${law.category}</span></td>
+                    <td><small>${textPreview}</small></td>
+                    <td><button class="btn btn-sm btn-primary" onclick="openEdit(${index})">แก้ไข</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        document.getElementById('btnSearch').addEventListener('click', () => {
+            loadLaws(document.getElementById('searchInput').value, document.getElementById('typeFilter').value);
+        });
+
+        document.getElementById('searchInput').addEventListener('keypress', (e) => {
+            if(e.key === 'Enter') loadLaws(e.target.value, document.getElementById('typeFilter').value);
+        });
+        
+        document.getElementById('typeFilter').addEventListener('change', () => {
+            loadLaws(document.getElementById('searchInput').value, document.getElementById('typeFilter').value);
+        });
+
+        function openEdit(index) {
+            const law = currentLaws[index];
+            document.getElementById('edit_law_type').value = law.law_type || 'ทั่วไป';
+            document.getElementById('edit_law_name').value = law.law_name || '';
+            document.getElementById('edit_section').value = law.section || '';
+            document.getElementById('edit_category').value = law.category || '';
+            document.getElementById('edit_original').value = law.original_text || '';
+            document.getElementById('edit_simplified').value = law.simplified_text || '';
+            
+            if(!editModal) {
+                editModal = new bootstrap.Modal(document.getElementById('editModal'));
+            }
+            editModal.show();
+        }
+
+        document.getElementById('btnSaveLaw').addEventListener('click', async () => {
+            const payload = {
+                law_type: document.getElementById('edit_law_type').value,
+                law_name: document.getElementById('edit_law_name').value,
+                section: document.getElementById('edit_section').value,
+                category: document.getElementById('edit_category').value,
+                original_text: document.getElementById('edit_original').value,
+                simplified_text: document.getElementById('edit_simplified').value
+            };
+            
+            document.getElementById('btnSaveLaw').disabled = true;
+            document.getElementById('btnSaveLaw').innerText = 'กำลังอัปเดต (รอ 5-10 วินาที)...';
+            
+            try {
+                const res = await fetch('/api/admin/laws', {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await res.json();
+                
+                if(res.ok) {
+                    alert(result.message);
+                    editModal.hide();
+                    loadLaws(document.getElementById('searchInput').value, document.getElementById('typeFilter').value);
+                } else {
+                    alert(result.detail || 'เกิดข้อผิดพลาด');
+                }
+            } catch (error) {
+                alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+            } finally {
+                document.getElementById('btnSaveLaw').disabled = false;
+                document.getElementById('btnSaveLaw').innerText = 'บันทึกและอัปเดตระบบ';
+            }
+        });
+
+        // เรียกใช้ตอนโหลดหน้า
+        loadSettings();
+        loadLaws();
+    </script>
+</body>
+</html>

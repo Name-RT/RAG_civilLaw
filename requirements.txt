@@ -16,4 +16,5 @@ nest-asyncio
 langchain-community<0.3.0
 langchain-openai<0.2.0
 google-generativeai>=0.3.0
-
+datasets
+llama-index-postprocessor-flag-embedding-reranker

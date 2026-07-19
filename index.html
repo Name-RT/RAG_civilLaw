@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบสืบค้นตัวบทกฎหมายแพ่งและพาณิชย์ — คลังข้อมูลประมวลกฎหมาย</title>
-    <meta name="description" content="ระบบสืบค้นประมวลกฎหมายแพ่งและพาณิชย์ด้วยเทคโนโลยีเวกเตอร์และการประมวลผลภาษาธรรมชาติ">
+    <title>สืบค้นกฏหมาย(ระบบบริการสืบค้นกฏหมายไทยที่เกี่ยวข้องกับเหตุการณ์ต่างๆ)</title>
+    <meta name="description" content="ระบบบริการสืบค้นกฏหมายไทยที่เกี่ยวข้องกับเหตุการณ์ต่างๆ ด้วยเทคโนโลยีเวกเตอร์ AI">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <!-- ใช้ TH Sarabun หรือ Fonts ที่เป็นทางการและสะอาดตา -->
@@ -590,7 +590,7 @@
 
 <!-- System status banner -->
 <div class="system-top-bar">
-    <div>คลังกฎหมายแพ่งและพาณิชย์ดิจิทัล</div>
+    <div>สืบค้นกฏหมาย(ระบบบริการสืบค้นกฏหมายไทยที่เกี่ยวข้องกับเหตุการณ์ต่างๆ)</div>
     <div class="system-status">
         <span class="status-dot" id="status-dot"></span>
         <span id="status-text">กำลังตรวจสอบสถานะการเชื่อมต่อ...</span>
@@ -602,8 +602,8 @@
 
     <!-- Header section -->
     <header class="portal-header">
-        <h1 class="portal-header-title">ประมวลกฎหมายแพ่งและพาณิชย์</h1>
-        <p class="portal-header-subtitle">ระบบบริการค้นข้อมูลและวิเคราะห์ตัวบทด้วยดัชนีเซนเซอร์เวกเตอร์อัจฉริยะ</p>
+        <h1 class="portal-header-title">สืบค้นกฏหมาย</h1>
+        <p class="portal-header-subtitle">ระบบบริการสืบค้นกฏหมายไทยที่เกี่ยวข้องกับเหตุการณ์ต่างๆ</p>
         <div class="portal-header-divider"></div>
     </header>
 
@@ -653,7 +653,7 @@
 
     <!-- Footer -->
     <footer class="portal-footer">
-        ระบบพัฒนาเพื่อการศึกษาและวิเคราะห์สถิติตัวบทกฎหมายโดย AI RAG &copy; 2026. ข้อมูลอ้างอิงจากประมวลกฎหมายแพ่งและพาณิชย์ไทย.
+        ระบบพัฒนาเพื่อการศึกษาและวิเคราะห์สถิติตัวบทกฎหมายโดย AI RAG &copy; 2026. ข้อมูลอ้างอิงจากประมวลกฎหมายแพ่งและพาณิชย์ และกฎหมายอาญาของไทย.
     </footer>
 </div>
 
@@ -868,7 +868,7 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ query: query, top_k: 5 })
-                }, 5000);
+                }, 120000); // เพิ่ม Timeout เป็น 120 วินาที (2 นาที) ตามที่ผู้ใช้ร้องขอ
 
                 if (!res.ok) throw new Error("Server Query Response Failed");
                 const data = await res.json();
