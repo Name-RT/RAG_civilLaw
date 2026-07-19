@@ -28,7 +28,7 @@
 
 ## 🎥 Video Demo
 
-<video src="./demo.mp4" controls="controls" style="max-width: 100%; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);"></video>
+![ThaiLaw AI Demo](./demo.gif)
 
 ---
 ## 🌐 ภาพรวมระบบ
